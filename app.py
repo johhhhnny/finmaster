@@ -12,14 +12,12 @@ if CURRENT_DIR not in sys.path:
     sys.path.insert(0, CURRENT_DIR)
 
 from engine.config import load_app_env
-from ui import (
-    inject_custom_css,
-    render_sidebar,
-    render_workbench,
-    render_archive,
-    render_calculator,
-    render_settings
-)
+from ui.styles import inject_custom_css
+from ui.sidebar import render_sidebar
+from ui.workbench import render_workbench
+from ui.archive import render_archive
+from ui.calculator import render_calculator
+from ui.settings import render_settings
 
 # 1. 初始化环境变量与页面基础配置
 load_app_env()
