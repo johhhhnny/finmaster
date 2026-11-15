@@ -151,6 +151,14 @@ def render_sidebar() -> SidebarState:
                 if not tavily_key:
                     st.caption("💡 [前往 tavily.com 免费获取 API Key](https://tavily.com) (每月 1000 次，50倍于 Gemini 每日限制)")
 
+            # 结构化硬数据底座状态提示
+            st.markdown("""
+            <div style="font-size: 0.72rem; color: #334155; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px 9px; margin: 8px 0;">
+                <div style="font-weight: 600; color: #0284c7; margin-bottom: 2px;">🏛️ 官方硬核数据底座已就绪 (免Key)</div>
+                <div>已默认接入 <strong>yfinance</strong>（极速行情/近4季三张表）+ <strong>SEC EDGAR</strong>（美国官方 10-K/10-Q 申报单），与 AI 搜索智能融合。</div>
+            </div>
+            """, unsafe_allow_html=True)
+
             # 保存与测试按钮组
             btn_col1, btn_col2 = st.columns(2)
             with btn_col1:

@@ -36,13 +36,13 @@ def render_workbench(state: SidebarState):
     search_provider = getattr(state, "search_provider", "auto")
     has_tavily = bool(getattr(state, "tavily_key", ""))
     if not enable_search:
-        search_badge = '<span style="font-size: 0.72rem; color: #64748b; background: #f8fafc; border: 1px solid #cbd5e1; padding: 3px 8px; border-radius: 6px; font-weight: 600;">🚫 离线推演 (无联网)</span>'
+        search_badge = '<span style="font-size: 0.72rem; color: #64748b; background: #f8fafc; border: 1px solid #cbd5e1; padding: 3px 8px; border-radius: 6px; font-weight: 600;">📊 yfinance + 🏛️ SEC EDGAR (离线模式)</span>'
     elif search_provider == "tavily" or (search_provider == "auto" and has_tavily):
-        search_badge = '<span style="font-size: 0.72rem; color: #0284c7; background: #f0f9ff; border: 1px solid #bae6fd; padding: 3px 8px; border-radius: 6px; font-weight: 600;">⚡ Tavily AI 实时联网 · 1000次/月免限</span>'
+        search_badge = '<span style="font-size: 0.72rem; color: #0284c7; background: #f0f9ff; border: 1px solid #bae6fd; padding: 3px 8px; border-radius: 6px; font-weight: 600;">📊 yfinance + 🏛️ SEC + ⚡ Tavily 混合金融中台</span>'
     elif search_provider == "duckduckgo":
-        search_badge = '<span style="font-size: 0.72rem; color: #b45309; background: #fffbeb; border: 1px solid #fde68a; padding: 3px 8px; border-radius: 6px; font-weight: 600;">🦆 DuckDuckGo 免密检索</span>'
+        search_badge = '<span style="font-size: 0.72rem; color: #b45309; background: #fffbeb; border: 1px solid #fde68a; padding: 3px 8px; border-radius: 6px; font-weight: 600;">📊 yfinance + 🏛️ SEC + 🦆 DuckDuckGo</span>'
     else:
-        search_badge = '<span style="font-size: 0.72rem; color: #059669; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 3px 8px; border-radius: 6px; font-weight: 600;">🛡️ 严防数据污染 · Google 实时联网</span>'
+        search_badge = '<span style="font-size: 0.72rem; color: #059669; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 3px 8px; border-radius: 6px; font-weight: 600;">📊 yfinance + 🏛️ SEC + 🛡️ Google 实时联网</span>'
 
     st.markdown(f"""
     <div class="skill-hero-card">

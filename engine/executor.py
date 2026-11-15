@@ -11,6 +11,7 @@ from typing import Dict, Any, Generator, Optional, Callable, List
 from .skill_manager import skill_manager
 from .llm import GeminiClient
 from .search_provider import search_manager
+from .data_sources import data_hub
 
 REPORTS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "reports"))
 
@@ -30,7 +31,7 @@ class ExecutionEngine:
     ) -> Generator[str, None, None]:
         """
         统一执行单智能体模式的技能，以流式生成输出。
-        支持 Tavily AI 结构化检索与 Gemini 原生 Google Search 智能调度。
+        支持 DataHub (yfinance + SEC EDGAR + Tavily AI / Google Search) 多源智能融合。
         """
         meta = skill_manager.get_skill(skill_id) or {}
         skill_title = meta.get("title", skill_id)
@@ -41,19 +42,17 @@ class ExecutionEngine:
         grounding_md = ""
 
         if enable_search:
-            search_ctx = search_manager.get_financial_context(
+            dh_res = data_hub.get_financial_grounding(
                 target=target_clean,
-                focus=str(user_params.get("criteria", ""))
+                focus=str(user_params.get("criteria", "")),
+                enable_search=True
             )
-            provider_name = search_ctx.get("provider_used", "联网检索")
+            provider_name = dh_res.get("summary_badge", "金融数据中台")
             if on_status:
-                on_status(f"🌐 正在使用 [{provider_name}] 实时检索「{target_clean}」最新财务与市场数据...")
+                on_status(f"🌐 正在通过 [{provider_name}] 实时汇集「{target_clean}」财务报表与权威底稿...")
 
-            if search_ctx.get("grounding_text"):
-                grounding_md = search_ctx["grounding_text"]
-                actual_gemini_search = False
-            else:
-                actual_gemini_search = search_ctx.get("use_gemini_grounding", True)
+            grounding_md = dh_res.get("grounding_text", "")
+            actual_gemini_search = False if grounding_md else True
         else:
             if on_status:
                 on_status(f"🚀 正在组装「{skill_title}」方法论提示词（纯模型深度知识模式）...")
@@ -92,24 +91,22 @@ class ExecutionEngine:
         results: Dict[str, str] = {}
         target_clean = target.strip()
 
-        # Step 0: 基准数据侦察
+        # Step 0: 基准数据侦察 (接入 DataHub 多源融合中台: yfinance + SEC EDGAR + Tavily AI)
         actual_gemini_search = False
         grounding_md = ""
 
-        if enable_search:
-            search_ctx = search_manager.get_financial_context(target=target_clean, focus=focus)
-            provider_name = search_ctx.get("provider_used", "联网检索")
-            if on_progress:
-                on_progress(f"🔍 Step 0: 实时行情与基准数据侦察 [{provider_name}]...", 10, None)
+        dh_res = data_hub.get_financial_grounding(
+            target=target_clean,
+            focus=focus,
+            enable_search=enable_search
+        )
+        provider_name = dh_res.get("summary_badge", "金融数据中台")
+        if on_progress:
+            on_progress(f"🔍 Step 0: 汇集行情与财务报表底稿 [{provider_name}]...", 10, None)
 
-            if search_ctx.get("grounding_text"):
-                grounding_md = search_ctx["grounding_text"]
-                actual_gemini_search = False
-            else:
-                actual_gemini_search = search_ctx.get("use_gemini_grounding", True)
-        else:
-            if on_progress:
-                on_progress("🔍 Step 0: 行情与基准数据推演（纯模型知识库模式）...", 10, None)
+        grounding_md = dh_res.get("grounding_text", "")
+        if not grounding_md and enable_search:
+            actual_gemini_search = True
 
         base_recon_prompt = f"""
 请针对研究标的【{target_clean}】，结合最新真实市场数据与检索结果输出精炼的核查基准清单：
