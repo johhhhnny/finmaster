@@ -11,6 +11,9 @@ from typing import Dict, Any, Optional, List
 
 from .yfinance_source import yfinance_source
 from .sec_edgar_source import sec_edgar_source
+from .finnhub_source import finnhub_source
+from .fmp_source import fmp_source
+from .adanos_source import adanos_source
 from ..search_provider import search_manager
 
 logger = logging.getLogger(__name__)
@@ -61,7 +64,43 @@ class DataHub:
             except Exception as e:
                 logger.warning(f"获取 SEC EDGAR 底稿失败: {e}")
 
-        # 3. 第三级：AI 深度搜索 (Tavily / Google Search) 提取定性行业情报与突发事件
+        # 3. 第三级（选配插件）：Finnhub 华尔街投行一致预期与财报 Surprise
+        has_finnhub = False
+        if ticker and finnhub_source.is_configured():
+            try:
+                fh_md = finnhub_source.to_markdown(ticker)
+                if fh_md:
+                    parts.append(fh_md)
+                    active_sources.append("Finnhub 华尔街预期与Surprise")
+                    has_finnhub = True
+            except Exception as e:
+                logger.warning(f"获取 Finnhub 数据失败: {e}")
+
+        # 4. 第四级（选配插件）：FMP 专业基本面建模与自动化 DCF
+        has_fmp = False
+        if ticker and fmp_source.is_configured():
+            try:
+                fmp_md = fmp_source.to_markdown(ticker)
+                if fmp_md:
+                    parts.append(fmp_md)
+                    active_sources.append("FMP ROIC/DCF建模")
+                    has_fmp = True
+            except Exception as e:
+                logger.warning(f"获取 FMP 数据失败: {e}")
+
+        # 5. 第五级（选配插件）：Adanos 市场先生社交情绪与另类预测盘口
+        has_adanos = False
+        if ticker and adanos_source.is_configured():
+            try:
+                adanos_md = adanos_source.to_markdown(ticker)
+                if adanos_md:
+                    parts.append(adanos_md)
+                    active_sources.append("Adanos 市场先生情绪钟摆")
+                    has_adanos = True
+            except Exception as e:
+                logger.warning(f"获取 Adanos 数据失败: {e}")
+
+        # 6. 第六级：AI 深度搜索 (Tavily / Google Search) 提取定性行业情报与突发事件
         search_md = ""
         has_search = False
         search_provider_name = ""
@@ -86,6 +125,12 @@ class DataHub:
             badge_list.append("📊 yfinance 结构化行情与三张表")
         if has_sec:
             badge_list.append("🏛️ SEC EDGAR 官方法务底稿")
+        if has_finnhub:
+            badge_list.append("🎯 Finnhub 华尔街预期")
+        if has_fmp:
+            badge_list.append("🧮 FMP ROIC/DCF")
+        if has_adanos:
+            badge_list.append("🌡️ Adanos 情绪盘口")
         if has_search:
             badge_list.append(f"⚡ {search_provider_name}")
         if not badge_list:
@@ -98,6 +143,9 @@ class DataHub:
             "ticker": ticker,
             "has_yf": has_yf,
             "has_sec": has_sec,
+            "has_finnhub": has_finnhub,
+            "has_fmp": has_fmp,
+            "has_adanos": has_adanos,
             "has_search": has_search,
             "active_sources": active_sources,
             "summary_badge": summary_badge,

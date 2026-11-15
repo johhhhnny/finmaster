@@ -7,7 +7,7 @@ import time
 from dataclasses import dataclass
 import streamlit as st
 
-from engine.config import save_env_config, get_current_config, get_search_config, get_sec_email
+from engine.config import save_env_config, get_current_config, get_search_config, get_sec_email, get_plugin_keys
 from engine.skill_manager import skill_manager
 from engine.llm import GeminiClient
 from engine.executor import ExecutionEngine
@@ -68,6 +68,7 @@ def render_sidebar() -> SidebarState:
         saved_key, saved_model, saved_temp = get_current_config()
         saved_provider, saved_tavily = get_search_config()
         saved_sec_email = get_sec_email()
+        plugin_keys = get_plugin_keys()
 
         if "settings_expanded" not in st.session_state:
             st.session_state["settings_expanded"] = not bool(saved_key)
@@ -167,6 +168,38 @@ def render_sidebar() -> SidebarState:
                     help="SEC 官方要求在 HTTP User-Agent 请求头中声明应用名与联系邮箱，用于超频提醒。"
                 )
 
+            # 扩展金融插件数据源配置 (选配 · 填Key即激活)
+            with st.expander("🔌 高阶扩展数据源插件 (Finnhub / FMP / Adanos)", expanded=False):
+                st.markdown("""
+                <div style="font-size: 0.74rem; color: #475569; line-height: 1.45; margin-bottom: 6px;">
+                    选配高阶专业投研插件。填入对应 API Key 即可激活对应专业卡片，留空则由 yfinance 基础底座平滑支持：
+                </div>
+                """, unsafe_allow_html=True)
+                
+                finnhub_key_input = st.text_input(
+                    "Finnhub API Key (华尔街目标价/Surprise)",
+                    value=plugin_keys.get("finnhub", ""),
+                    type="password",
+                    placeholder="例如: cxxxxxxxxxxxxxxx",
+                    help="前往 https://finnhub.io 免费注册获取，享 60次/分钟 机构级华尔街目标价与财报Surprise数据。"
+                )
+                
+                fmp_key_input = st.text_input(
+                    "FMP API Key (ROIC / 杜邦分析 / DCF模型)",
+                    value=plugin_keys.get("fmp", ""),
+                    type="password",
+                    placeholder="例如: xxxxxxxxxxxxxxxxxxxxxxxx",
+                    help="前往 https://financialmodelingprep.com 免费注册获取，享 250次/天 自动化现金流折现与ROIC建模。"
+                )
+                
+                adanos_key_input = st.text_input(
+                    "Adanos API Key (散户情绪 / Polymarket盘口)",
+                    value=plugin_keys.get("adanos", ""),
+                    type="password",
+                    placeholder="例如: adanos_xxxxxxxxxxxxxxxx",
+                    help="前往 https://adanos.com 免费注册获取，追踪 Reddit/X 讨论热度与预测市场赔率。"
+                )
+
             # 保存与测试按钮组
             btn_col1, btn_col2 = st.columns(2)
             with btn_col1:
@@ -177,7 +210,10 @@ def render_sidebar() -> SidebarState:
                         temp=temperature,
                         tavily_key=tavily_key,
                         search_provider=selected_provider_key,
-                        sec_email=sec_contact_email
+                        sec_email=sec_contact_email,
+                        finnhub_key=finnhub_key_input,
+                        fmp_key=fmp_key_input,
+                        adanos_key=adanos_key_input
                     )
                     st.session_state["settings_expanded"] = True
                     st.toast(f"✅ 全局配置已保存！搜索模式: {selected_provider_key}")

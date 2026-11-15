@@ -4,6 +4,9 @@ FinMaster Data Sources Package
 """
 from .yfinance_source import YFinanceSource, yfinance_source
 from .sec_edgar_source import SecEdgarSource, sec_edgar_source
+from .finnhub_source import FinnhubSource, finnhub_source
+from .fmp_source import FMPSource, fmp_source
+from .adanos_source import AdanosSource, adanos_source
 from .data_hub import DataHub, data_hub
 
 __all__ = [
@@ -11,6 +14,13 @@ __all__ = [
     "yfinance_source",
     "SecEdgarSource",
     "sec_edgar_source",
+    "FinnhubSource",
+    "finnhub_source",
+    "FMPSource",
+    "fmp_source",
+    "AdanosSource",
+    "adanos_source",
     "DataHub",
     "data_hub"
 ]
+
