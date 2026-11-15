@@ -327,19 +327,21 @@ class SearchManager:
                 "success": True
             }
 
-        # 3. 构造高质量金融针对性检索 Query (支持中英文标的智能适配与上市/未上市双模态)
+        # 3. 构造高质量金融针对性检索 Query (支持动态年份与高权重行情/市值/股本特征词)
+        from datetime import datetime
+        curr_year = datetime.now().year
         target_clean = target.strip()
         is_pure_ascii = all(ord(c) < 128 for c in target_clean)
         if is_pure_ascii:
-            query = f"{target_clean} stock price market cap shares valuation revenue profit free cash flow 2024 2025"
+            query = f"{target_clean} stock quote price market cap shares outstanding revenue earnings {curr_year}"
         else:
-            query = f"{target_clean} 股票代码 股价 市值 估值 财报 营收 净利润 自由现金流 2024 2025"
+            query = f"{target_clean} 股票代码 实时股价 收盘价 总股本 真实总市值 财报 营收 净利润 {curr_year}"
         if focus:
             query += f" {focus.strip()}"
 
         # 4. 如果指定 Tavily 或处于 Auto 模式且配置了 Tavily Key
         if provider in ("tavily", "auto") and self.tavily.is_configured():
-            logger.info(f"使用 Tavily 深度检索标的真实金融数据: {target_clean}")
+            logger.info(f"使用 Tavily 深度检索标的真实金融数据: {target_clean} [Query: {query}]")
             res = self.tavily.search(query=query, max_results=5, search_depth="advanced", include_answer=True)
             if res.success:
                 return {
