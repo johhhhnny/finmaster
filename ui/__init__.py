@@ -7,6 +7,7 @@ from ui.sidebar import render_sidebar, SidebarState
 from ui.workbench import render_workbench
 from ui.archive import render_archive
 from ui.calculator import render_calculator
+from ui.settings import render_settings
 
 __all__ = [
     "inject_custom_css",
@@ -15,4 +16,5 @@ __all__ = [
     "render_workbench",
     "render_archive",
     "render_calculator",
+    "render_settings",
 ]

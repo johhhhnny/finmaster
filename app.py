@@ -17,7 +17,8 @@ from ui import (
     render_sidebar,
     render_workbench,
     render_archive,
-    render_calculator
+    render_calculator,
+    render_settings
 )
 
 # 1. 初始化环境变量与页面基础配置
@@ -43,3 +44,5 @@ elif sidebar_state.app_mode == "📂 历史研报知识库":
     render_archive()
 elif sidebar_state.app_mode == "🧮 金融严谨性计算器":
     render_calculator()
+elif sidebar_state.app_mode == "⚙️ 系统与数据源设置":
+    render_settings()
