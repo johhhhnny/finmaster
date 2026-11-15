@@ -4,24 +4,25 @@ FinMaster SEC EDGAR Official Data Provider
 包含最新已生效的 10-K 年报、10-Q 季报、8-K 重大事件披露及 SEC 官方底稿直达链接。
 100% 官方权威，零捏造，免费无需 API Key。
 """
+import os
 import logging
 import requests
 from typing import Dict, Any, Optional, List
 
 logger = logging.getLogger(__name__)
 
-SEC_HEADERS = {
-    # SEC 官方合规 User-Agent 格式：SampleApp user@domain.com
-    "User-Agent": "FinMasterWorkstation/1.0 (equity-research@finmaster.internal)",
-    "Accept-Encoding": "gzip, deflate",
-    "Host": "data.sec.gov"
-}
-
-SEC_TICKER_HEADERS = {
-    "User-Agent": "FinMasterWorkstation/1.0 (equity-research@finmaster.internal)",
-    "Accept-Encoding": "gzip, deflate",
-    "Host": "www.sec.gov"
-}
+def get_sec_headers(host: str = "data.sec.gov") -> Dict[str, str]:
+    """
+    生成符合美国 SEC EDGAR 官方准则的请求头。
+    SEC 官方强制规定：请求头 User-Agent 必须包含应用名称与有效联系邮箱（格式: AppName email@domain.com）。
+    支持优先读取用户在 .env 或界面配置的 SEC_CONTACT_EMAIL，未配置时使用默认系统标识平滑兜底。
+    """
+    contact_email = os.getenv("SEC_CONTACT_EMAIL", "").strip() or "equity-research@finmaster.internal"
+    return {
+        "User-Agent": f"FinMasterWorkstation/1.0 ({contact_email})",
+        "Accept-Encoding": "gzip, deflate",
+        "Host": host
+    }
 
 
 class SecEdgarSource:
@@ -37,7 +38,8 @@ class SecEdgarSource:
 
         try:
             url = "https://www.sec.gov/files/company_tickers.json"
-            resp = requests.get(url, headers=SEC_TICKER_HEADERS, timeout=8)
+            headers = get_sec_headers(host="www.sec.gov")
+            resp = requests.get(url, headers=headers, timeout=8)
             if resp.status_code == 200:
                 data = resp.json()
                 mapping = {}
@@ -82,7 +84,8 @@ class SecEdgarSource:
 
         try:
             url = f"https://data.sec.gov/submissions/CIK{cik}.json"
-            resp = requests.get(url, headers=SEC_HEADERS, timeout=10)
+            headers = get_sec_headers(host="data.sec.gov")
+            resp = requests.get(url, headers=headers, timeout=10)
             if resp.status_code != 200:
                 return {
                     "success": False,

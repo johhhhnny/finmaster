@@ -36,12 +36,17 @@ def get_search_config() -> Tuple[str, str]:
     tavily_key = os.getenv("TAVILY_API_KEY", "")
     return provider, tavily_key
 
+def get_sec_email() -> str:
+    """获取配置的 SEC EDGAR 联络邮箱"""
+    return os.getenv("SEC_CONTACT_EMAIL", "")
+
 def save_env_config(
     key: str,
     model: str,
     temp: float,
     tavily_key: Optional[str] = None,
-    search_provider: Optional[str] = None
+    search_provider: Optional[str] = None,
+    sec_email: Optional[str] = None
 ) -> bool:
     """安全保存配置至 .env 文件并同步更新内存环境变量"""
     env_file = os.path.join(CURRENT_DIR, ".env")
@@ -50,6 +55,7 @@ def save_env_config(
     
     current_tavily = tavily_key if tavily_key is not None else os.getenv("TAVILY_API_KEY", "")
     current_provider = search_provider if search_provider is not None else os.getenv("SEARCH_PROVIDER", "auto")
+    current_sec_email = sec_email if sec_email is not None else os.getenv("SEC_CONTACT_EMAIL", "")
 
     if os.path.exists(env_file):
         with open(env_file, "r", encoding="utf-8") as f:
@@ -70,6 +76,9 @@ def save_env_config(
                 elif stripped.startswith("SEARCH_PROVIDER="):
                     lines.append(f"SEARCH_PROVIDER={current_provider}\n")
                     existing_keys.add("SEARCH_PROVIDER")
+                elif stripped.startswith("SEC_CONTACT_EMAIL="):
+                    lines.append(f"SEC_CONTACT_EMAIL={current_sec_email}\n")
+                    existing_keys.add("SEC_CONTACT_EMAIL")
                 else:
                     lines.append(line)
 
@@ -83,6 +92,8 @@ def save_env_config(
         lines.append(f"TAVILY_API_KEY={current_tavily}\n")
     if "SEARCH_PROVIDER" not in existing_keys and current_provider is not None:
         lines.append(f"SEARCH_PROVIDER={current_provider}\n")
+    if "SEC_CONTACT_EMAIL" not in existing_keys and current_sec_email:
+        lines.append(f"SEC_CONTACT_EMAIL={current_sec_email}\n")
 
     with open(env_file, "w", encoding="utf-8") as f:
         f.writelines(lines)
@@ -94,6 +105,8 @@ def save_env_config(
         os.environ["TAVILY_API_KEY"] = current_tavily
     if current_provider is not None:
         os.environ["SEARCH_PROVIDER"] = current_provider
+    if current_sec_email:
+        os.environ["SEC_CONTACT_EMAIL"] = current_sec_email
 
     # 同步刷新 search_manager 单例的 tavily key
     try:
