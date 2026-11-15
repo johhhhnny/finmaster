@@ -11,9 +11,11 @@ from typing import Dict, Any, Optional, List
 
 from .yfinance_source import yfinance_source
 from .sec_edgar_source import sec_edgar_source
+from .fred_source import fred_source
 from .finnhub_source import finnhub_source
 from .fmp_source import fmp_source
 from .adanos_source import adanos_source
+from .tiingo_source import tiingo_source
 from ..search_provider import search_manager
 
 logger = logging.getLogger(__name__)
@@ -64,7 +66,18 @@ class DataHub:
             except Exception as e:
                 logger.warning(f"获取 SEC EDGAR 底稿失败: {e}")
 
-        # 3. 第三级（选配插件）：Finnhub 华尔街投行一致预期与财报 Surprise
+        # 3. 第三级：FRED 圣路易斯联储官方主权级宏观与估值折现基准 (无风险利率 Rf + 收益率利差)
+        has_fred = False
+        try:
+            fred_md = fred_source.to_markdown()
+            if fred_md:
+                parts.append(fred_md)
+                active_sources.append("FRED 官方宏观基准与折现率")
+                has_fred = True
+        except Exception as e:
+            logger.warning(f"获取 FRED 宏观底座失败: {e}")
+
+        # 4. 第四级（选配插件）：Finnhub 华尔街投行一致预期与财报 Surprise
         has_finnhub = False
         if ticker and finnhub_source.is_configured():
             try:
@@ -76,7 +89,7 @@ class DataHub:
             except Exception as e:
                 logger.warning(f"获取 Finnhub 数据失败: {e}")
 
-        # 4. 第四级（选配插件）：FMP 专业基本面建模与自动化 DCF
+        # 5. 第五级（选配插件）：FMP 专业基本面建模与自动化 DCF
         has_fmp = False
         if ticker and fmp_source.is_configured():
             try:
@@ -88,7 +101,7 @@ class DataHub:
             except Exception as e:
                 logger.warning(f"获取 FMP 数据失败: {e}")
 
-        # 5. 第五级（选配插件）：Adanos 市场先生社交情绪与另类预测盘口
+        # 6. 第六级（选配插件）：Adanos 市场先生社交情绪与另类预测盘口
         has_adanos = False
         if ticker and adanos_source.is_configured():
             try:
@@ -100,7 +113,19 @@ class DataHub:
             except Exception as e:
                 logger.warning(f"获取 Adanos 数据失败: {e}")
 
-        # 6. 第六级：AI 深度搜索 (Tavily / Google Search) 提取定性行业情报与突发事件
+        # 7. 第七级（选配插件）：Tiingo 量化级精确复权行情与备用链路
+        has_tiingo = False
+        if ticker and tiingo_source.is_configured():
+            try:
+                tiingo_md = tiingo_source.to_markdown(ticker)
+                if tiingo_md:
+                    parts.append(tiingo_md)
+                    active_sources.append("Tiingo 量化复权行情")
+                    has_tiingo = True
+            except Exception as e:
+                logger.warning(f"获取 Tiingo 数据失败: {e}")
+
+        # 8. 第八级：AI 深度搜索 (Tavily / Google Search) 提取定性行业情报与突发事件
         search_md = ""
         has_search = False
         search_provider_name = ""
@@ -125,12 +150,16 @@ class DataHub:
             badge_list.append("📊 yfinance 结构化行情与三张表")
         if has_sec:
             badge_list.append("🏛️ SEC EDGAR 官方法务底稿")
+        if has_fred:
+            badge_list.append("🇺🇸 FRED 宏观折现基准")
         if has_finnhub:
             badge_list.append("🎯 Finnhub 华尔街预期")
         if has_fmp:
             badge_list.append("🧮 FMP ROIC/DCF")
         if has_adanos:
             badge_list.append("🌡️ Adanos 情绪盘口")
+        if has_tiingo:
+            badge_list.append("📈 Tiingo 量化复权")
         if has_search:
             badge_list.append(f"⚡ {search_provider_name}")
         if not badge_list:
@@ -143,9 +172,11 @@ class DataHub:
             "ticker": ticker,
             "has_yf": has_yf,
             "has_sec": has_sec,
+            "has_fred": has_fred,
             "has_finnhub": has_finnhub,
             "has_fmp": has_fmp,
             "has_adanos": has_adanos,
+            "has_tiingo": has_tiingo,
             "has_search": has_search,
             "active_sources": active_sources,
             "summary_badge": summary_badge,

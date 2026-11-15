@@ -104,11 +104,11 @@ def render_sidebar() -> SidebarState:
             </div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
                 <span style="color: #64748b;">官方底座:</span>
-                <span style="font-weight: 600; color: #166534;">yfinance + SEC 🟢</span>
+                <span style="font-weight: 600; color: #166534;">yfinance + SEC + FRED 🟢</span>
             </div>
             <div style="display: flex; justify-content: space-between;">
                 <span style="color: #64748b;">扩展插件:</span>
-                <span style="font-weight: 600; color: #7c3aed;">{active_plugins}/3 已激活</span>
+                <span style="font-weight: 600; color: #7c3aed;">{active_plugins}/4 已激活</span>
             </div>
         </div>
         <div style="font-size: 0.68rem; color: #94a3b8; text-align: center; margin-top: 6px;">

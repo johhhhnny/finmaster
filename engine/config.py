@@ -40,12 +40,17 @@ def get_sec_email() -> str:
     """获取配置的 SEC EDGAR 联络邮箱"""
     return os.getenv("SEC_CONTACT_EMAIL", "")
 
+def get_fred_key() -> str:
+    """获取配置的 FRED 圣路易斯联储 API Key"""
+    return os.getenv("FRED_API_KEY", "")
+
 def get_plugin_keys() -> Dict[str, str]:
-    """获取扩展插件数据源密钥 (Finnhub, FMP, Adanos)"""
+    """获取扩展插件数据源密钥 (Finnhub, FMP, Adanos, Tiingo)"""
     return {
         "finnhub": os.getenv("FINNHUB_API_KEY", ""),
         "fmp": os.getenv("FMP_API_KEY", ""),
-        "adanos": os.getenv("ADANOS_API_KEY", "")
+        "adanos": os.getenv("ADANOS_API_KEY", ""),
+        "tiingo": os.getenv("TIINGO_API_KEY", "")
     }
 
 def save_env_config(
@@ -57,7 +62,9 @@ def save_env_config(
     sec_email: Optional[str] = None,
     finnhub_key: Optional[str] = None,
     fmp_key: Optional[str] = None,
-    adanos_key: Optional[str] = None
+    adanos_key: Optional[str] = None,
+    fred_key: Optional[str] = None,
+    tiingo_key: Optional[str] = None
 ) -> bool:
     """安全保存配置至 .env 文件并同步更新内存环境变量"""
     env_file = os.path.join(CURRENT_DIR, ".env")
@@ -70,6 +77,8 @@ def save_env_config(
     current_finnhub = finnhub_key if finnhub_key is not None else os.getenv("FINNHUB_API_KEY", "")
     current_fmp = fmp_key if fmp_key is not None else os.getenv("FMP_API_KEY", "")
     current_adanos = adanos_key if adanos_key is not None else os.getenv("ADANOS_API_KEY", "")
+    current_fred = fred_key if fred_key is not None else os.getenv("FRED_API_KEY", "")
+    current_tiingo = tiingo_key if tiingo_key is not None else os.getenv("TIINGO_API_KEY", "")
 
     if os.path.exists(env_file):
         with open(env_file, "r", encoding="utf-8") as f:
@@ -102,6 +111,12 @@ def save_env_config(
                 elif stripped.startswith("ADANOS_API_KEY="):
                     lines.append(f"ADANOS_API_KEY={current_adanos}\n")
                     existing_keys.add("ADANOS_API_KEY")
+                elif stripped.startswith("FRED_API_KEY="):
+                    lines.append(f"FRED_API_KEY={current_fred}\n")
+                    existing_keys.add("FRED_API_KEY")
+                elif stripped.startswith("TIINGO_API_KEY="):
+                    lines.append(f"TIINGO_API_KEY={current_tiingo}\n")
+                    existing_keys.add("TIINGO_API_KEY")
                 else:
                     lines.append(line)
 
@@ -123,6 +138,10 @@ def save_env_config(
         lines.append(f"FMP_API_KEY={current_fmp}\n")
     if "ADANOS_API_KEY" not in existing_keys and current_adanos:
         lines.append(f"ADANOS_API_KEY={current_adanos}\n")
+    if "FRED_API_KEY" not in existing_keys and current_fred:
+        lines.append(f"FRED_API_KEY={current_fred}\n")
+    if "TIINGO_API_KEY" not in existing_keys and current_tiingo:
+        lines.append(f"TIINGO_API_KEY={current_tiingo}\n")
 
     with open(env_file, "w", encoding="utf-8") as f:
         f.writelines(lines)
@@ -142,6 +161,10 @@ def save_env_config(
         os.environ["FMP_API_KEY"] = current_fmp
     if current_adanos:
         os.environ["ADANOS_API_KEY"] = current_adanos
+    if current_fred:
+        os.environ["FRED_API_KEY"] = current_fred
+    if current_tiingo:
+        os.environ["TIINGO_API_KEY"] = current_tiingo
 
     # 同步刷新各单例对象的内存 key
     try:
@@ -153,6 +176,10 @@ def save_env_config(
         fmp_source.api_key = current_fmp
         from engine.data_sources.adanos_source import adanos_source
         adanos_source.api_key = current_adanos
+        from engine.data_sources.fred_source import fred_source
+        fred_source.api_key = current_fred
+        from engine.data_sources.tiingo_source import tiingo_source
+        tiingo_source.api_key = current_tiingo
     except Exception:
         pass
 

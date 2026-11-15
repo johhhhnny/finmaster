@@ -1,6 +1,6 @@
 """
 FinMaster UI 系统与数据源设置中心 (Settings & Data Hub Console)
-提供大模型推理、联网搜索引擎、官方证券底座、高阶金融插件配置与全链路连通性体检。
+提供大模型推理、联网搜索引擎、官方证券与宏观底座 (yfinance/SEC/FRED)、高阶金融插件 (Finnhub/FMP/Adanos/Tiingo) 配置与全链路连通性体检。
 """
 import os
 import time
@@ -12,6 +12,7 @@ from engine.config import (
     get_current_config,
     get_search_config,
     get_sec_email,
+    get_fred_key,
     get_plugin_keys,
     save_env_config
 )
@@ -19,9 +20,11 @@ from engine.llm import GeminiClient
 from engine.search_provider import search_manager
 from engine.data_sources.yfinance_source import yfinance_source
 from engine.data_sources.sec_edgar_source import sec_edgar_source
+from engine.data_sources.fred_source import fred_source
 from engine.data_sources.finnhub_source import finnhub_source
 from engine.data_sources.fmp_source import fmp_source
 from engine.data_sources.adanos_source import adanos_source
+from engine.data_sources.tiingo_source import tiingo_source
 
 
 def render_settings():
@@ -30,6 +33,7 @@ def render_settings():
     saved_key, saved_model, saved_temp = get_current_config()
     saved_provider, saved_tavily = get_search_config()
     saved_sec_email = get_sec_email()
+    saved_fred_key = get_fred_key()
     plugin_keys = get_plugin_keys()
 
     # 初始化 session state 用于存储表单变更状态
@@ -45,15 +49,19 @@ def render_settings():
         st.session_state["cfg_tavily_key"] = saved_tavily
     if "cfg_sec_email" not in st.session_state:
         st.session_state["cfg_sec_email"] = saved_sec_email
+    if "cfg_fred_key" not in st.session_state:
+        st.session_state["cfg_fred_key"] = saved_fred_key
     if "cfg_finnhub_key" not in st.session_state:
         st.session_state["cfg_finnhub_key"] = plugin_keys.get("finnhub", "")
     if "cfg_fmp_key" not in st.session_state:
         st.session_state["cfg_fmp_key"] = plugin_keys.get("fmp", "")
     if "cfg_adanos_key" not in st.session_state:
         st.session_state["cfg_adanos_key"] = plugin_keys.get("adanos", "")
+    if "cfg_tiingo_key" not in st.session_state:
+        st.session_state["cfg_tiingo_key"] = plugin_keys.get("tiingo", "")
 
     # 统计插件就绪状态
-    active_plugins = sum(1 for v in plugin_keys.values() if v and len(v.strip()) > 3)
+    active_plugins = sum(1 for k in ["finnhub", "fmp", "adanos", "tiingo"] if plugin_keys.get(k) and len(plugin_keys[k].strip()) > 3)
 
     # 2. 顶部控制台 Hero 标题卡片
     st.markdown(f"""
@@ -66,17 +74,17 @@ def render_settings():
                     <span style="font-size: 0.72rem; background: #e0f2fe; color: #0284c7; padding: 3px 8px; border-radius: 9999px; font-weight: 600;">Data Hub Console</span>
                 </div>
                 <div style="font-size: 0.85rem; color: #475569; line-height: 1.5;">
-                    集中管理大模型推理引擎、互联网搜索调度、官方证券底座与华尔街机构数据插件。所有更改持久化至本地 <code>.env</code> 文件。
+                    集中管理大模型推理引擎、互联网搜索调度、三大官方硬核底座 (yfinance/SEC/FRED) 与四大华尔街机构数据插件。所有更改持久化至本地 <code>.env</code> 文件。
                 </div>
             </div>
             <div style="display: flex; gap: 10px; align-items: center;">
                 <div style="text-align: right; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 6px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
                     <div style="font-size: 0.68rem; color: #64748b; font-weight: 600;">核心底座状态</div>
-                    <div style="font-size: 0.82rem; font-weight: 700; color: #166534;">🟢 yfinance + SEC 直连</div>
+                    <div style="font-size: 0.82rem; font-weight: 700; color: #166534;">🟢 yfinance + SEC + FRED 直连</div>
                 </div>
                 <div style="text-align: right; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 6px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-                    <div style="font-size: 0.68rem; color: #64748b; font-weight: 600;">高阶插件</div>
-                    <div style="font-size: 0.82rem; font-weight: 700; color: #0284c7;">🔌 已激活 {active_plugins} / 3</div>
+                    <div style="font-size: 0.68rem; color: #64748b; font-weight: 600;">高阶扩展插件</div>
+                    <div style="font-size: 0.82rem; font-weight: 700; color: #0284c7;">🔌 已激活 {active_plugins} / 4</div>
                 </div>
             </div>
         </div>
@@ -250,21 +258,21 @@ def render_settings():
                                 st.caption(t_res.get("details", ""))
 
     # ----------------------------------------------------
-    # TAB 3: 官方硬核数据底座
+    # TAB 3: 官方硬核数据底座 (yfinance + SEC EDGAR + FRED)
     # ----------------------------------------------------
     with tab_core:
-        st.markdown('<div style="font-size: 1.05rem; font-weight: 700; color: #0f172a; margin-bottom: 8px;">🏛️ 官方硬核数据底座 (yfinance + SEC EDGAR)</div>', unsafe_allow_html=True)
-        st.markdown('<div style="font-size: 0.82rem; color: #64748b; margin-bottom: 16px;">FinMaster 的坚实财务基石：直接连通全球各大交易所行情与美国证监会官方披露文件。</div>', unsafe_allow_html=True)
+        st.markdown('<div style="font-size: 1.05rem; font-weight: 700; color: #0f172a; margin-bottom: 8px;">🏛️ 官方硬核数据底座 (yfinance + SEC EDGAR + FRED 联储宏观)</div>', unsafe_allow_html=True)
+        st.markdown('<div style="font-size: 0.82rem; color: #64748b; margin-bottom: 16px;">FinMaster 的坚实财务与宏观基石：直接连通全球各大交易所行情、美国证监会披露底稿与美联储主权级利率基准。</div>', unsafe_allow_html=True)
 
-        col_c1, col_c2 = st.columns(2)
+        col_c1, col_c2, col_c3 = st.columns(3)
         with col_c1:
             st.markdown("""
             <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px 18px; height: 100%; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-                    <div style="font-size: 1rem; font-weight: 700; color: #0f172a;">📊 yfinance 实时金融底座</div>
-                    <span style="font-size: 0.7rem; background: #ecfdf5; color: #059669; padding: 2px 8px; border-radius: 9999px; font-weight: 600;">🟢 免 Key 内置直连</span>
+                    <div style="font-size: 0.95rem; font-weight: 700; color: #0f172a;">📊 yfinance 实时金融底座</div>
+                    <span style="font-size: 0.68rem; background: #ecfdf5; color: #059669; padding: 2px 7px; border-radius: 9999px; font-weight: 600;">🟢 免Key直连</span>
                 </div>
-                <div style="font-size: 0.78rem; color: #475569; line-height: 1.55;">
+                <div style="font-size: 0.76rem; color: #475569; line-height: 1.55;">
                     • <strong>覆盖范围</strong>: 美股 (NYSE/NASDAQ)、港股 (HKEX)、A股 (沪深) 等全球主要市场。<br>
                     • <strong>核心数据</strong>: 实时报价、市值、总股本、流通盘、企业价值 (EV)、52周价格区间。<br>
                     • <strong>三张表透视</strong>: 自动抓取最近 4 个季度的资产负债表、利润表与现金流量表核心科目。<br>
@@ -277,31 +285,60 @@ def render_settings():
             st.markdown("""
             <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px 18px; height: 100%; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-                    <div style="font-size: 1rem; font-weight: 700; color: #0f172a;">🏛️ SEC EDGAR 官方披露引擎</div>
-                    <span style="font-size: 0.7rem; background: #ecfdf5; color: #059669; padding: 2px 8px; border-radius: 9999px; font-weight: 600;">🟢 免 Key 内置直连</span>
+                    <div style="font-size: 0.95rem; font-weight: 700; color: #0f172a;">🏛️ SEC EDGAR 官方披露</div>
+                    <span style="font-size: 0.68rem; background: #ecfdf5; color: #059669; padding: 2px 7px; border-radius: 9999px; font-weight: 600;">🟢 免Key直连</span>
                 </div>
-                <div style="font-size: 0.78rem; color: #475569; line-height: 1.55;">
-                    • <strong>官方权威</strong>: 直连美国证券交易委员会 (SEC) 官方公开披露系统，杜绝虚假二次转述。<br>
+                <div style="font-size: 0.76rem; color: #475569; line-height: 1.55;">
+                    • <strong>官方权威</strong>: 直连美国证券交易委员会 (SEC) 官方公开披露系统，杜绝二次转述偏差。<br>
                     • <strong>法定文件</strong>: 实时抓取上市公司最新 <strong>10-K</strong> (年报)、<strong>10-Q</strong> (季报)、<strong>8-K</strong> (重大公告)。<br>
                     • <strong>官方文件链</strong>: 生成直接跳转 SEC.gov 的真实原始文件链接。<br>
-                    • <strong>合规机制</strong>: 内置 SEC 标准 User-Agent 请求头，完全满足官方无障碍访问要求。
+                    • <strong>合规机制</strong>: 内置 SEC 标准 User-Agent 请求头，完全满足官方访问要求。
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with col_c3:
+            st.markdown("""
+            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px 18px; height: 100%; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                    <div style="font-size: 0.95rem; font-weight: 700; color: #0f172a;">🇺🇸 FRED 圣路易斯联储宏观</div>
+                    <span style="font-size: 0.68rem; background: #ecfdf5; color: #059669; padding: 2px 7px; border-radius: 9999px; font-weight: 600;">🟢 免Key直连</span>
+                </div>
+                <div style="font-size: 0.76rem; color: #475569; line-height: 1.55;">
+                    • <strong>主权级宏观底座</strong>: 圣路易斯联储官方主权经济数据库 (80万+时序)。<br>
+                    • <strong>估值折现锚 (Rf)</strong>: 实时追踪美国 <strong>10年期国债收益率</strong> (DGS10)，作为 DCF 权威折现率。<br>
+                    • <strong>宏观衰退雷达</strong>: 监控 <strong>10Y-2Y 美债利差倒挂</strong> (T10Y2Y)，提供经济周期前瞻预警。<br>
+                    • <strong>货币定价基准</strong>: 美联储联邦基金有效利率 (FEDFUNDS) 与核心 CPI 通胀。
                 </div>
             </div>
             """, unsafe_allow_html=True)
 
         st.markdown('<div style="margin-top: 16px;"></div>', unsafe_allow_html=True)
-        st.markdown('**🛡️ SEC EDGAR 联络声明配置 (可选 · 提升访问优先级)**')
-        sec_email_input = st.text_input(
-            "SEC 申报联系邮箱",
-            value=st.session_state["cfg_sec_email"],
-            placeholder="例如: your_name@domain.com (留空则默认使用系统内置合规声明)",
-            help="美国 SEC 要求第三方调用方在 User-Agent 中声明机构或个人联系邮箱，用于在系统维护或异常频次时发送友好提醒。"
-        )
-        st.session_state["cfg_sec_email"] = sec_email_input
+        col_in1, col_in2 = st.columns(2)
+        with col_in1:
+            st.markdown('**🛡️ SEC EDGAR 联络声明配置 (可选 · 提升访问优先级)**')
+            sec_email_input = st.text_input(
+                "SEC 申报联系邮箱",
+                value=st.session_state["cfg_sec_email"],
+                placeholder="例如: your_name@domain.com (留空则默认使用系统内置合规声明)",
+                help="美国 SEC 要求第三方调用方在 User-Agent 中声明机构或个人联系邮箱，用于在系统维护或异常频次时发送友好提醒。"
+            )
+            st.session_state["cfg_sec_email"] = sec_email_input
 
-        col_ct1, col_ct2 = st.columns([3, 9])
+        with col_in2:
+            st.markdown('**🇺🇸 FRED 专属 API Key (可选 · 留空默认走官方直连通道)**')
+            fred_key_input = st.text_input(
+                "FRED API Key",
+                value=st.session_state["cfg_fred_key"],
+                type="password",
+                placeholder="例如: 32位十六进制 Key (留空默认启用免密直连通道)",
+                help="前往 https://fred.stlouisfed.org/docs/api/api_key.html 免费申请"
+            )
+            st.session_state["cfg_fred_key"] = fred_key_input
+
+        col_ct1, col_ct2 = st.columns(2)
         with col_ct1:
-            if st.button("🧪 测试基础数据抓取 (以 AAPL 为例)", key="btn_test_core_data", use_container_width=True):
+            if st.button("🧪 测试 yfinance 与 SEC EDGAR 基础数据抓取", key="btn_test_core_data", use_container_width=True):
                 with st.spinner("正在连通 yfinance 与 SEC EDGAR 抓取 Apple Inc. 数据..."):
                     t_start = time.time()
                     q_snap = yfinance_source.fetch_data("AAPL")
@@ -309,43 +346,54 @@ def render_settings():
                     dur = (time.time() - t_start) * 1000
 
                     if q_snap.get("success") and sec_res.get("success"):
-                        st.success(f"✅ 底座抓取正常！耗时: {dur:.0f}ms | 股价: ${q_snap.get('price')} | CIK: {sec_res.get('cik')}")
+                        st.success(f"✅ 股票与证监会底座正常！耗时: {dur:.0f}ms | 股价: ${q_snap.get('price')} | CIK: {sec_res.get('cik')}")
                     else:
                         st.warning(f"⚠️ 抓取完成：yfinance成功={q_snap.get('success')}, SEC成功={sec_res.get('success')}")
 
+        with col_ct2:
+            if st.button("🇺🇸 测试 FRED 圣路易斯联储宏观数据通道", key="btn_test_fred", use_container_width=True):
+                with st.spinner("正在连通 FRED 宏观底座抓取 10 年期美债收益率与利差..."):
+                    f_res = fred_source.test_connection(st.session_state["cfg_fred_key"])
+                    if f_res["success"]:
+                        st.success(f"✅ {f_res['message']} ({f_res.get('latency_ms', 0):.0f}ms)")
+                        if f_res.get("details"):
+                            st.caption(f_res["details"])
+                    else:
+                        st.error(f"❌ {f_res['message']}")
+
     # ----------------------------------------------------
-    # TAB 4: 高阶金融插件
+    # TAB 4: 高阶金融插件 (Finnhub / FMP / Adanos / Tiingo)
     # ----------------------------------------------------
     with tab_plugins:
         st.markdown('<div style="font-size: 1.05rem; font-weight: 700; color: #0f172a; margin-bottom: 8px;">🔌 高阶扩展金融插件 (选配 · 填 Key 即刻激活)</div>', unsafe_allow_html=True)
-        st.markdown('<div style="font-size: 0.82rem; color: #64748b; margin-bottom: 16px;">通过接入专业金融 API，将研报维度扩展至华尔街投行一致预期、ROIC 深度拆解及散户情绪与预测盘口。</div>', unsafe_allow_html=True)
+        st.markdown('<div style="font-size: 0.82rem; color: #64748b; margin-bottom: 16px;">通过接入专业金融 API，将研报维度扩展至华尔街投行一致预期、ROIC 深度拆解、散户情绪/预测盘口及高精度量化复权行情。</div>', unsafe_allow_html=True)
 
-        col_p1, col_p2, col_p3 = st.columns(3)
+        col_p1, col_p2, col_p3, col_p4 = st.columns(4)
 
         # 插件 1: Finnhub
         with col_p1:
             st.markdown("""
             <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 16px; margin-bottom: 10px;">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-                    <span style="font-weight: 700; font-size: 0.95rem; color: #0f172a;">🎯 Finnhub 投行共识</span>
-                    <span style="font-size: 0.68rem; background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 4px;">60次/分 免费</span>
+                    <span style="font-weight: 700; font-size: 0.92rem; color: #0f172a;">🎯 Finnhub 共识</span>
+                    <span style="font-size: 0.65rem; background: #f1f5f9; color: #475569; padding: 2px 5px; border-radius: 4px;">60次/分 免费</span>
                 </div>
-                <div style="font-size: 0.76rem; color: #64748b; line-height: 1.45; min-height: 80px;">
-                    • 华尔街投行分析师目标价均值/最高/最低<br>
-                    • 买入 / 增持 / 持有 / 减持评级分布<br>
-                    • 近 4 季度 EPS 财报超预期 (Surprise) 历史
+                <div style="font-size: 0.74rem; color: #64748b; line-height: 1.45; min-height: 75px;">
+                    • 华尔街买入/持有/卖出评级<br>
+                    • 投行目标价中枢与预测区间<br>
+                    • 近4季 EPS 财报超预期记录
                 </div>
             </div>
             """, unsafe_allow_html=True)
             finnhub_val = st.text_input(
-                "Finnhub API Key",
+                "Finnhub Key",
                 value=st.session_state["cfg_finnhub_key"],
                 type="password",
                 placeholder="例如: cxxxxxxxxxxxxxxx",
                 help="前往 https://finnhub.io 免费注册"
             )
             st.session_state["cfg_finnhub_key"] = finnhub_val
-            st.caption("👉 [前往 finnhub.io 免费获取](https://finnhub.io)")
+            st.caption("👉 [前往 finnhub.io 注册](https://finnhub.io)")
 
             if st.button("测试 Finnhub", key="test_finnhub_btn", use_container_width=True):
                 if not finnhub_val:
@@ -365,25 +413,25 @@ def render_settings():
             st.markdown("""
             <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 16px; margin-bottom: 10px;">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-                    <span style="font-weight: 700; font-size: 0.95rem; color: #0f172a;">🧮 FMP 估值与 ROIC</span>
-                    <span style="font-size: 0.68rem; background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 4px;">250次/天 免费</span>
+                    <span style="font-weight: 700; font-size: 0.92rem; color: #0f172a;">🧮 FMP 估值/ROIC</span>
+                    <span style="font-size: 0.65rem; background: #f1f5f9; color: #475569; padding: 2px 5px; border-radius: 4px;">250次/天 免费</span>
                 </div>
-                <div style="font-size: 0.76rem; color: #64748b; line-height: 1.45; min-height: 80px;">
-                    • 资本回报率 ROIC 与净资产收益率 ROE<br>
-                    • 自动化现金流折现 (DCF) 公允估值测算<br>
-                    • 业务产品分部营收拆解 (Segment Revenues)
+                <div style="font-size: 0.74rem; color: #64748b; line-height: 1.45; min-height: 75px;">
+                    • 资本回报率 ROIC 与 ROE<br>
+                    • 自动化现金流折现 (DCF) 估值<br>
+                    • 业务产品分部营收拆解
                 </div>
             </div>
             """, unsafe_allow_html=True)
             fmp_val = st.text_input(
-                "FMP API Key",
+                "FMP Key",
                 value=st.session_state["cfg_fmp_key"],
                 type="password",
                 placeholder="例如: xxxxxxxxxxxxxxxxxxxxxxxx",
                 help="前往 https://financialmodelingprep.com 免费注册"
             )
             st.session_state["cfg_fmp_key"] = fmp_val
-            st.caption("👉 [前往 financialmodelingprep.com 免费获取](https://financialmodelingprep.com)")
+            st.caption("👉 [前往 financialmodelingprep.com](https://financialmodelingprep.com)")
 
             if st.button("测试 FMP", key="test_fmp_btn", use_container_width=True):
                 if not fmp_val:
@@ -403,25 +451,25 @@ def render_settings():
             st.markdown("""
             <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 16px; margin-bottom: 10px;">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-                    <span style="font-weight: 700; font-size: 0.95rem; color: #0f172a;">🔮 Adanos 情绪与预测</span>
-                    <span style="font-size: 0.68rem; background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 4px;">免费配额</span>
+                    <span style="font-weight: 700; font-size: 0.92rem; color: #0f172a;">🔮 Adanos 情绪</span>
+                    <span style="font-size: 0.65rem; background: #f1f5f9; color: #475569; padding: 2px 5px; border-radius: 4px;">社区免费</span>
                 </div>
-                <div style="font-size: 0.76rem; color: #64748b; line-height: 1.45; min-height: 80px;">
-                    • Reddit / X (FinTwit) 讨论热度 (Buzz Score)<br>
-                    • 散户多空情绪占比 (Bullish/Bearish %)<br>
-                    • Polymarket 真金白银预测市场赔率盘口
+                <div style="font-size: 0.74rem; color: #64748b; line-height: 1.45; min-height: 75px;">
+                    • Reddit / X 散户讨论热度<br>
+                    • 社区看多/看空情绪占比<br>
+                    • Polymarket 真实预测市场盘口
                 </div>
             </div>
             """, unsafe_allow_html=True)
             adanos_val = st.text_input(
-                "Adanos API Key",
+                "Adanos Key",
                 value=st.session_state["cfg_adanos_key"],
                 type="password",
                 placeholder="例如: adanos_xxxxxxxxxxxxxxxx",
                 help="前往 https://adanos.org 免费注册"
             )
             st.session_state["cfg_adanos_key"] = adanos_val
-            st.caption("👉 [前往 adanos.org 免费获取](https://adanos.org)")
+            st.caption("👉 [前往 adanos.org 注册](https://adanos.org)")
 
             if st.button("测试 Adanos", key="test_adanos_btn", use_container_width=True):
                 if not adanos_val:
@@ -436,19 +484,57 @@ def render_settings():
                             if res_ad.get("details"):
                                 st.caption(res_ad["details"])
 
+        # 插件 4: Tiingo
+        with col_p4:
+            st.markdown("""
+            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 16px; margin-bottom: 10px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                    <span style="font-weight: 700; font-size: 0.92rem; color: #0f172a;">📈 Tiingo 量化复权</span>
+                    <span style="font-size: 0.65rem; background: #f1f5f9; color: #475569; padding: 2px 5px; border-radius: 4px;">1000次/天 免费</span>
+                </div>
+                <div style="font-size: 0.74rem; color: #64748b; line-height: 1.45; min-height: 75px;">
+                    • 30年高精度严密清洗日K线<br>
+                    • 现金分红与拆股全量除权校正<br>
+                    • 充当 yfinance 第二高可靠备用链路
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            tiingo_val = st.text_input(
+                "Tiingo Key",
+                value=st.session_state["cfg_tiingo_key"],
+                type="password",
+                placeholder="例如: xxxxxxxxxxxxxxxxxxxxxxxx",
+                help="前往 https://www.tiingo.com 免费注册获取"
+            )
+            st.session_state["cfg_tiingo_key"] = tiingo_val
+            st.caption("👉 [前往 tiingo.com 注册](https://www.tiingo.com)")
+
+            if st.button("测试 Tiingo", key="test_tiingo_btn", use_container_width=True):
+                if not tiingo_val:
+                    st.warning("请先填入 Tiingo Key")
+                else:
+                    with st.spinner("测试 Tiingo 连通性..."):
+                        res_ti = tiingo_source.test_connection(tiingo_val)
+                        if res_ti["success"]:
+                            st.success(f"✅ {res_ti['message']} ({res_ti.get('latency_ms', 0):.0f}ms)")
+                        else:
+                            st.error(f"❌ {res_ti['message']}")
+                            if res_ti.get("details"):
+                                st.caption(res_ti["details"])
+
     # ----------------------------------------------------
     # TAB 5: 全链路连通性体检
     # ----------------------------------------------------
     with tab_health:
         st.markdown('<div style="font-size: 1.05rem; font-weight: 700; color: #0f172a; margin-bottom: 8px;">🩺 全链路数据源连通性体检中心</div>', unsafe_allow_html=True)
-        st.markdown('<div style="font-size: 0.82rem; color: #64748b; margin-bottom: 16px;">一键测试模型、搜索引擎、核心财务底座及已配置的高阶插件，出具健康体检报告。</div>', unsafe_allow_html=True)
+        st.markdown('<div style="font-size: 0.82rem; color: #64748b; margin-bottom: 16px;">一键测试模型、搜索引擎、三大核心财务与宏观底座及四大高阶插件，出具全景健康体检报告。</div>', unsafe_allow_html=True)
 
         if st.button("🩺 立即执行全链路一键体检", key="btn_run_full_health_check", type="primary"):
             progress_bar = st.progress(0, text="正在启动全链路健康诊断...")
             results: List[Dict[str, Any]] = []
 
             # 1. Gemini
-            progress_bar.progress(15, text="[1/6] 测试 Gemini 大模型推理连通性...")
+            progress_bar.progress(12, text="[1/8] 测试 Gemini 大模型推理连通性...")
             client = GeminiClient(
                 api_key=st.session_state["cfg_gemini_key"],
                 model=st.session_state["cfg_model"],
@@ -465,7 +551,7 @@ def render_settings():
             })
 
             # 2. Tavily Search
-            progress_bar.progress(35, text="[2/6] 测试 Tavily 搜索引擎连通性...")
+            progress_bar.progress(25, text="[2/8] 测试 Tavily 搜索引擎连通性...")
             if st.session_state["cfg_tavily_key"]:
                 res_tavily = search_manager.tavily.test_connection(st.session_state["cfg_tavily_key"])
                 results.append({
@@ -487,7 +573,7 @@ def render_settings():
                 })
 
             # 3. yfinance
-            progress_bar.progress(45, text="[3/7] 测试 yfinance 官方行情与财报底座...")
+            progress_bar.progress(38, text="[3/8] 测试 yfinance 官方行情与财报底座...")
             t_s = time.time()
             try:
                 yf_snap = yfinance_source.fetch_data("AAPL")
@@ -511,7 +597,7 @@ def render_settings():
                 })
 
             # 4. SEC EDGAR
-            progress_bar.progress(60, text="[4/7] 测试 SEC EDGAR 美国证监会披露系统...")
+            progress_bar.progress(50, text="[4/8] 测试 SEC EDGAR 美国证监会披露系统...")
             t_s = time.time()
             try:
                 sec_snap = sec_edgar_source.fetch_filings("AAPL")
@@ -534,8 +620,20 @@ def render_settings():
                     "badge": "官方披露"
                 })
 
-            # 5. Finnhub (if configured)
-            progress_bar.progress(75, text="[5/7] 测试 Finnhub 投行共识插件...")
+            # 5. FRED
+            progress_bar.progress(62, text="[5/8] 测试 FRED 圣路易斯联储主权宏观底座...")
+            res_fred = fred_source.test_connection(st.session_state["cfg_fred_key"])
+            results.append({
+                "name": "FRED 联储宏观底座",
+                "target": "stlouisfed.org",
+                "success": res_fred["success"],
+                "latency_ms": res_fred.get("latency_ms", 0),
+                "msg": res_fred["message"],
+                "badge": "宏观基准Rf"
+            })
+
+            # 6. Finnhub
+            progress_bar.progress(72, text="[6/8] 测试 Finnhub 投行共识插件...")
             if st.session_state["cfg_finnhub_key"]:
                 res_fh = finnhub_source.test_connection(st.session_state["cfg_finnhub_key"])
                 results.append({
@@ -556,8 +654,8 @@ def render_settings():
                     "badge": "高阶插件"
                 })
 
-            # 6. FMP (if configured)
-            progress_bar.progress(88, text="[6/7] 测试 FMP ROIC 与 DCF 插件...")
+            # 7. FMP
+            progress_bar.progress(82, text="[7/8] 测试 FMP ROIC 与 DCF 插件...")
             if st.session_state["cfg_fmp_key"]:
                 res_fmp = fmp_source.test_connection(st.session_state["cfg_fmp_key"])
                 results.append({
@@ -578,8 +676,8 @@ def render_settings():
                     "badge": "高阶插件"
                 })
 
-            # 7. Adanos (if configured)
-            progress_bar.progress(98, text="[7/7] 测试 Adanos 情绪与预测盘口插件...")
+            # 8. Adanos
+            progress_bar.progress(92, text="[8/8] 测试 Adanos 情绪与预测盘口插件...")
             if st.session_state["cfg_adanos_key"]:
                 res_ad = adanos_source.test_connection(st.session_state["cfg_adanos_key"])
                 results.append({
@@ -597,6 +695,18 @@ def render_settings():
                     "success": None,
                     "latency_ms": 0,
                     "msg": "未配置 Key (选配)",
+                    "badge": "高阶插件"
+                })
+
+            # 9. Tiingo (若配置)
+            if st.session_state["cfg_tiingo_key"]:
+                res_ti = tiingo_source.test_connection(st.session_state["cfg_tiingo_key"])
+                results.append({
+                    "name": "Tiingo 量化复权行情",
+                    "target": "api.tiingo.com",
+                    "success": res_ti["success"],
+                    "latency_ms": res_ti.get("latency_ms", 0),
+                    "msg": res_ti["message"],
                     "badge": "高阶插件"
                 })
 
@@ -648,9 +758,11 @@ def render_settings():
             st.session_state["cfg_provider"] = saved_provider
             st.session_state["cfg_tavily_key"] = saved_tavily
             st.session_state["cfg_sec_email"] = saved_sec_email
+            st.session_state["cfg_fred_key"] = saved_fred_key
             st.session_state["cfg_finnhub_key"] = plugin_keys.get("finnhub", "")
             st.session_state["cfg_fmp_key"] = plugin_keys.get("fmp", "")
             st.session_state["cfg_adanos_key"] = plugin_keys.get("adanos", "")
+            st.session_state["cfg_tiingo_key"] = plugin_keys.get("tiingo", "")
             st.toast("已重置为上次保存的状态")
             st.rerun()
 
@@ -665,7 +777,9 @@ def render_settings():
                 sec_email=st.session_state["cfg_sec_email"],
                 finnhub_key=st.session_state["cfg_finnhub_key"],
                 fmp_key=st.session_state["cfg_fmp_key"],
-                adanos_key=st.session_state["cfg_adanos_key"]
+                adanos_key=st.session_state["cfg_adanos_key"],
+                fred_key=st.session_state["cfg_fred_key"],
+                tiingo_key=st.session_state["cfg_tiingo_key"]
             )
             st.toast("✅ 全局配置已成功保存至 .env 并立即生效！", icon="🎉")
             time.sleep(0.4)
