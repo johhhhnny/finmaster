@@ -28,7 +28,7 @@ class FMPSource:
         return (self.api_key or os.getenv("FMP_API_KEY", "")).strip()
 
     def fetch_fundamental_models(self, ticker: str) -> Dict[str, Any]:
-        """抓取 FMP 关键财务比率与自动化 DCF 估值"""
+        """抓取 FMP 关键财务比率与自动化 DCF 估值 (采用 FMP 官方最新 Stable API)"""
         if not self.is_configured():
             return {"success": False, "error": "未配置 FMP_API_KEY"}
 
@@ -42,13 +42,13 @@ class FMPSource:
 
         try:
             # 1. 抓取财务比率 (包含 ROIC, ROE, FCF 收益率)
-            ratios_url = f"https://financialmodelingprep.com/api/v3/ratios/{clean_ticker}?period=quarter&limit=4&apikey={key}"
+            ratios_url = f"https://financialmodelingprep.com/stable/ratios?symbol={clean_ticker}&apikey={key}"
             resp = requests.get(ratios_url, timeout=8)
             if resp.status_code == 200:
                 ratios_list = resp.json() or []
 
             # 2. 抓取自动化 DCF 现金流折现估值
-            dcf_url = f"https://financialmodelingprep.com/api/v3/discounted-cash-flow/{clean_ticker}?apikey={key}"
+            dcf_url = f"https://financialmodelingprep.com/stable/discounted-cash-flow?symbol={clean_ticker}&apikey={key}"
             d_resp = requests.get(dcf_url, timeout=8)
             if d_resp.status_code == 200:
                 d_data = d_resp.json() or []
@@ -67,6 +67,48 @@ class FMPSource:
         except Exception as e:
             logger.warning(f"获取 FMP 数据异常 ({clean_ticker}): {e}")
             return {"success": False, "ticker": clean_ticker, "error": str(e)}
+
+    def test_connection(self, key: Optional[str] = None) -> Dict[str, Any]:
+        """测试 FMP 现代化 Stable API 连通性"""
+        api_key = (key or self._get_key()).strip()
+        if not api_key:
+            return {"success": False, "latency_ms": 0, "message": "未配置 FMP_API_KEY"}
+
+        import time
+        start_t = time.time()
+        try:
+            url = f"https://financialmodelingprep.com/stable/profile?symbol=AAPL&apikey={api_key}"
+            resp = requests.get(url, timeout=8)
+            latency = (time.time() - start_t) * 1000.0
+            if resp.status_code == 200:
+                return {
+                    "success": True,
+                    "latency_ms": latency,
+                    "message": "FMP 基本面与估值通道连通正常",
+                    "details": "已接入 FMP 官方最新 Stable API (Profile/DCF/Ratios 正常)"
+                }
+            elif resp.status_code in (401, 403):
+                return {
+                    "success": False,
+                    "latency_ms": latency,
+                    "message": f"FMP API 鉴权未通过 (HTTP {resp.status_code})",
+                    "details": resp.text[:300]
+                }
+            else:
+                return {
+                    "success": False,
+                    "latency_ms": latency,
+                    "message": f"FMP 响应异常 (HTTP {resp.status_code})",
+                    "details": resp.text[:300]
+                }
+        except Exception as e:
+            latency = (time.time() - start_t) * 1000.0
+            return {
+                "success": False,
+                "latency_ms": latency,
+                "message": f"FMP 连接失败: {type(e).__name__}",
+                "details": str(e)
+            }
 
     def to_markdown(self, ticker: str) -> str:
         """格式化为巴菲特/段永平专属的基本面模型 Markdown"""

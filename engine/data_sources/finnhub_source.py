@@ -45,27 +45,27 @@ class FinnhubSource:
         surprises = []
 
         try:
-            # 1. 目标价
-            target_url = f"https://finnhub.io/api/v1/stock/price-target?symbol={clean_ticker}"
-            resp = requests.get(target_url, headers=headers, timeout=8)
-            if resp.status_code == 200:
-                target_data = resp.json() or {}
-
-            # 2. 评级分布
-            rec_url = f"https://finnhub.io/api/v1/stock/recommendation?symbol={clean_ticker}"
+            # 1. 评级分布 (免费层开放)
+            rec_url = f"https://finnhub.io/api/v1/stock/recommendation?symbol={clean_ticker}&token={key}"
             r_resp = requests.get(rec_url, headers=headers, timeout=8)
             if r_resp.status_code == 200:
                 rec_list = r_resp.json() or []
                 if rec_list:
                     recommendation = rec_list[0]
 
-            # 3. 财报超预期历史 (Earnings Surprises)
-            surp_url = f"https://finnhub.io/api/v1/stock/earnings?symbol={clean_ticker}&limit=4"
+            # 2. 财报超预期历史 (Earnings Surprises，免费层开放)
+            surp_url = f"https://finnhub.io/api/v1/stock/earnings?symbol={clean_ticker}&limit=4&token={key}"
             s_resp = requests.get(surp_url, headers=headers, timeout=8)
             if s_resp.status_code == 200:
                 surprises = s_resp.json() or []
 
-            has_data = bool(target_data.get("targetMean") or recommendation or surprises)
+            # 3. 目标价中枢 (若账户具备付费权限则获取，免费层403则优雅降级)
+            target_url = f"https://finnhub.io/api/v1/stock/price-target?symbol={clean_ticker}&token={key}"
+            resp = requests.get(target_url, headers=headers, timeout=8)
+            if resp.status_code == 200:
+                target_data = resp.json() or {}
+
+            has_data = bool(recommendation or surprises or target_data.get("targetMean"))
             return {
                 "success": has_data,
                 "ticker": clean_ticker,
@@ -76,6 +76,48 @@ class FinnhubSource:
         except Exception as e:
             logger.warning(f"获取 Finnhub 数据异常 ({clean_ticker}): {e}")
             return {"success": False, "ticker": clean_ticker, "error": str(e)}
+
+    def test_connection(self, key: Optional[str] = None) -> Dict[str, Any]:
+        """测试 Finnhub 机构共识与财报 Surprise 接口连通性"""
+        api_key = (key or self._get_key()).strip()
+        if not api_key:
+            return {"success": False, "latency_ms": 0, "message": "未配置 FINNHUB_API_KEY"}
+
+        import time
+        start_t = time.time()
+        try:
+            url = f"https://finnhub.io/api/v1/stock/recommendation?symbol=AAPL&token={api_key}"
+            resp = requests.get(url, headers={"X-Finnhub-Token": api_key}, timeout=8)
+            latency = (time.time() - start_t) * 1000.0
+            if resp.status_code == 200:
+                return {
+                    "success": True,
+                    "latency_ms": latency,
+                    "message": "Finnhub 华尔街共识数据连通正常",
+                    "details": "成功获取 AAPL 机构评级分布与分析师覆盖"
+                }
+            elif resp.status_code in (401, 403):
+                return {
+                    "success": False,
+                    "latency_ms": latency,
+                    "message": f"Finnhub API 鉴权未通过 (HTTP {resp.status_code})",
+                    "details": resp.text[:300]
+                }
+            else:
+                return {
+                    "success": False,
+                    "latency_ms": latency,
+                    "message": f"Finnhub 响应异常 (HTTP {resp.status_code})",
+                    "details": resp.text[:300]
+                }
+        except Exception as e:
+            latency = (time.time() - start_t) * 1000.0
+            return {
+                "success": False,
+                "latency_ms": latency,
+                "message": f"Finnhub 连接失败: {type(e).__name__}",
+                "details": str(e)
+            }
 
     def to_markdown(self, ticker: str) -> str:
         """格式化为投研专用的华尔街预期 Markdown 卡片"""

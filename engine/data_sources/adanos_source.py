@@ -66,6 +66,48 @@ class AdanosSource:
             logger.warning(f"获取 Adanos 情绪数据异常 ({clean_ticker}): {e}")
             return {"success": False, "ticker": clean_ticker, "error": str(e)}
 
+    def test_connection(self, key: Optional[str] = None) -> Dict[str, Any]:
+        """测试 Adanos 情绪与另类预测盘口连通性"""
+        api_key = (key or self._get_key()).strip()
+        if not api_key:
+            return {"success": False, "latency_ms": 0, "message": "未配置 ADANOS_API_KEY"}
+
+        import time
+        start_t = time.time()
+        try:
+            url = "https://api.adanos.org/reddit/stocks/v1/stock/AAPL"
+            resp = requests.get(url, headers={"X-API-Key": api_key}, timeout=8)
+            latency = (time.time() - start_t) * 1000.0
+            if resp.status_code == 200:
+                return {
+                    "success": True,
+                    "latency_ms": latency,
+                    "message": "Adanos 散户情绪与预测盘口连通正常",
+                    "details": "已成功连通 Reddit 散户热度与 Polymarket 预测盘口数据"
+                }
+            elif resp.status_code in (401, 403):
+                return {
+                    "success": False,
+                    "latency_ms": latency,
+                    "message": f"Adanos API 鉴权未通过 (HTTP {resp.status_code})",
+                    "details": resp.text[:300]
+                }
+            else:
+                return {
+                    "success": False,
+                    "latency_ms": latency,
+                    "message": f"Adanos 响应异常 (HTTP {resp.status_code})",
+                    "details": resp.text[:300]
+                }
+        except Exception as e:
+            latency = (time.time() - start_t) * 1000.0
+            return {
+                "success": False,
+                "latency_ms": latency,
+                "message": f"Adanos 连接失败: {type(e).__name__}",
+                "details": str(e)
+            }
+
     def to_markdown(self, ticker: str) -> str:
         """格式化为市场先生情绪钟摆 Markdown 卡片"""
         if not self.is_configured():

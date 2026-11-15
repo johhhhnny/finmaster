@@ -316,6 +316,9 @@ class YFinanceSource:
             return "-"
         return f"{self._fmt_large_num(val)} {curr}"
 
+    # 别名兼容
+    fetch_quote_snapshot = fetch_data
+
 
 # 全局单例
 yfinance_source = YFinanceSource()

@@ -304,8 +304,8 @@ def render_settings():
             if st.button("🧪 测试基础数据抓取 (以 AAPL 为例)", key="btn_test_core_data", use_container_width=True):
                 with st.spinner("正在连通 yfinance 与 SEC EDGAR 抓取 Apple Inc. 数据..."):
                     t_start = time.time()
-                    q_snap = yfinance_source.fetch_quote_snapshot("AAPL")
-                    sec_res = sec_edgar_source.fetch_company_filings("AAPL")
+                    q_snap = yfinance_source.fetch_data("AAPL")
+                    sec_res = sec_edgar_source.fetch_filings("AAPL")
                     dur = (time.time() - t_start) * 1000
 
                     if q_snap.get("success") and sec_res.get("success"):
@@ -352,16 +352,13 @@ def render_settings():
                     st.warning("请先填入 Finnhub Key")
                 else:
                     with st.spinner("测试 Finnhub 连通性..."):
-                        t_s = time.time()
-                        try:
-                            resp = requests.get(f"https://finnhub.io/api/v1/stock/price-target?symbol=AAPL", headers={"X-Finnhub-Token": finnhub_val.strip()}, timeout=6)
-                            ms = (time.time() - t_s) * 1000
-                            if resp.status_code == 200:
-                                st.success(f"✅ Finnhub 连通成功 ({ms:.0f}ms)")
-                            else:
-                                st.error(f"❌ HTTP {resp.status_code}: {resp.text[:100]}")
-                        except Exception as e:
-                            st.error(f"连接失败: {e}")
+                        res_fh = finnhub_source.test_connection(finnhub_val)
+                        if res_fh["success"]:
+                            st.success(f"✅ {res_fh['message']} ({res_fh.get('latency_ms', 0):.0f}ms)")
+                        else:
+                            st.error(f"❌ {res_fh['message']}")
+                            if res_fh.get("details"):
+                                st.caption(res_fh["details"])
 
         # 插件 2: FMP
         with col_p2:
@@ -392,17 +389,14 @@ def render_settings():
                 if not fmp_val:
                     st.warning("请先填入 FMP Key")
                 else:
-                    with st.spinner("测试 FMP 连通性..."):
-                        t_s = time.time()
-                        try:
-                            resp = requests.get(f"https://financialmodelingprep.com/api/v3/profile/AAPL?apikey={fmp_val.strip()}", timeout=6)
-                            ms = (time.time() - t_s) * 1000
-                            if resp.status_code == 200:
-                                st.success(f"✅ FMP 连通成功 ({ms:.0f}ms)")
-                            else:
-                                st.error(f"❌ HTTP {resp.status_code}: {resp.text[:100]}")
-                        except Exception as e:
-                            st.error(f"连接失败: {e}")
+                    with st.spinner("测试 FMP 连通性 (Stable API)..."):
+                        res_fmp = fmp_source.test_connection(fmp_val)
+                        if res_fmp["success"]:
+                            st.success(f"✅ {res_fmp['message']} ({res_fmp.get('latency_ms', 0):.0f}ms)")
+                        else:
+                            st.error(f"❌ {res_fmp['message']}")
+                            if res_fmp.get("details"):
+                                st.caption(res_fmp["details"])
 
         # 插件 3: Adanos
         with col_p3:
@@ -434,16 +428,13 @@ def render_settings():
                     st.warning("请先填入 Adanos Key")
                 else:
                     with st.spinner("测试 Adanos 连通性..."):
-                        t_s = time.time()
-                        try:
-                            resp = requests.get(f"https://api.adanos.org/reddit/stocks/v1/stock/AAPL", headers={"X-API-Key": adanos_val.strip()}, timeout=6)
-                            ms = (time.time() - t_s) * 1000
-                            if resp.status_code == 200:
-                                st.success(f"✅ Adanos 连通成功 ({ms:.0f}ms)")
-                            else:
-                                st.error(f"❌ HTTP {resp.status_code}: {resp.text[:100]}")
-                        except Exception as e:
-                            st.error(f"连接失败: {e}")
+                        res_ad = adanos_source.test_connection(adanos_val)
+                        if res_ad["success"]:
+                            st.success(f"✅ {res_ad['message']} ({res_ad.get('latency_ms', 0):.0f}ms)")
+                        else:
+                            st.error(f"❌ {res_ad['message']}")
+                            if res_ad.get("details"):
+                                st.caption(res_ad["details"])
 
     # ----------------------------------------------------
     # TAB 5: 全链路连通性体检
@@ -496,10 +487,10 @@ def render_settings():
                 })
 
             # 3. yfinance
-            progress_bar.progress(55, text="[3/6] 测试 yfinance 官方行情与财报底座...")
+            progress_bar.progress(45, text="[3/7] 测试 yfinance 官方行情与财报底座...")
             t_s = time.time()
             try:
-                yf_snap = yfinance_source.fetch_quote_snapshot("AAPL")
+                yf_snap = yfinance_source.fetch_data("AAPL")
                 yf_lat = (time.time() - t_s) * 1000
                 results.append({
                     "name": "yfinance 财务底座",
@@ -520,10 +511,10 @@ def render_settings():
                 })
 
             # 4. SEC EDGAR
-            progress_bar.progress(75, text="[4/6] 测试 SEC EDGAR 美国证监会披露系统...")
+            progress_bar.progress(60, text="[4/7] 测试 SEC EDGAR 美国证监会披露系统...")
             t_s = time.time()
             try:
-                sec_snap = sec_edgar_source.fetch_company_filings("AAPL")
+                sec_snap = sec_edgar_source.fetch_filings("AAPL")
                 sec_lat = (time.time() - t_s) * 1000
                 results.append({
                     "name": "SEC EDGAR 披露引擎",
@@ -544,32 +535,17 @@ def render_settings():
                 })
 
             # 5. Finnhub (if configured)
-            progress_bar.progress(85, text="[5/6] 测试 Finnhub 投行共识插件...")
+            progress_bar.progress(75, text="[5/7] 测试 Finnhub 投行共识插件...")
             if st.session_state["cfg_finnhub_key"]:
-                t_s = time.time()
-                try:
-                    resp = requests.get(
-                        "https://finnhub.io/api/v1/stock/price-target?symbol=AAPL",
-                        headers={"X-Finnhub-Token": st.session_state["cfg_finnhub_key"].strip()},
-                        timeout=5
-                    )
-                    results.append({
-                        "name": "Finnhub 投行共识",
-                        "target": "finnhub.io",
-                        "success": resp.status_code == 200,
-                        "latency_ms": (time.time() - t_s) * 1000,
-                        "msg": "华尔街目标价连通正常" if resp.status_code == 200 else f"HTTP {resp.status_code}",
-                        "badge": "高阶插件"
-                    })
-                except Exception as e:
-                    results.append({
-                        "name": "Finnhub 投行共识",
-                        "target": "finnhub.io",
-                        "success": False,
-                        "latency_ms": (time.time() - t_s) * 1000,
-                        "msg": str(e)[:80],
-                        "badge": "高阶插件"
-                    })
+                res_fh = finnhub_source.test_connection(st.session_state["cfg_finnhub_key"])
+                results.append({
+                    "name": "Finnhub 投行共识",
+                    "target": "finnhub.io",
+                    "success": res_fh["success"],
+                    "latency_ms": res_fh.get("latency_ms", 0),
+                    "msg": res_fh["message"],
+                    "badge": "高阶插件"
+                })
             else:
                 results.append({
                     "name": "Finnhub 投行共识",
@@ -581,35 +557,43 @@ def render_settings():
                 })
 
             # 6. FMP (if configured)
-            progress_bar.progress(95, text="[6/6] 测试 FMP ROIC 与 DCF 插件...")
+            progress_bar.progress(88, text="[6/7] 测试 FMP ROIC 与 DCF 插件...")
             if st.session_state["cfg_fmp_key"]:
-                t_s = time.time()
-                try:
-                    resp = requests.get(
-                        f"https://financialmodelingprep.com/api/v3/profile/AAPL?apikey={st.session_state['cfg_fmp_key'].strip()}",
-                        timeout=5
-                    )
-                    results.append({
-                        "name": "FMP ROIC/DCF",
-                        "target": "financialmodelingprep.com",
-                        "success": resp.status_code == 200,
-                        "latency_ms": (time.time() - t_s) * 1000,
-                        "msg": "DCF模型通道正常" if resp.status_code == 200 else f"HTTP {resp.status_code}",
-                        "badge": "高阶插件"
-                    })
-                except Exception as e:
-                    results.append({
-                        "name": "FMP ROIC/DCF",
-                        "target": "financialmodelingprep.com",
-                        "success": False,
-                        "latency_ms": (time.time() - t_s) * 1000,
-                        "msg": str(e)[:80],
-                        "badge": "高阶插件"
-                    })
+                res_fmp = fmp_source.test_connection(st.session_state["cfg_fmp_key"])
+                results.append({
+                    "name": "FMP ROIC/DCF",
+                    "target": "financialmodelingprep.com",
+                    "success": res_fmp["success"],
+                    "latency_ms": res_fmp.get("latency_ms", 0),
+                    "msg": res_fmp["message"],
+                    "badge": "高阶插件"
+                })
             else:
                 results.append({
                     "name": "FMP ROIC/DCF",
                     "target": "financialmodelingprep.com",
+                    "success": None,
+                    "latency_ms": 0,
+                    "msg": "未配置 Key (选配)",
+                    "badge": "高阶插件"
+                })
+
+            # 7. Adanos (if configured)
+            progress_bar.progress(98, text="[7/7] 测试 Adanos 情绪与预测盘口插件...")
+            if st.session_state["cfg_adanos_key"]:
+                res_ad = adanos_source.test_connection(st.session_state["cfg_adanos_key"])
+                results.append({
+                    "name": "Adanos 情绪与预测",
+                    "target": "api.adanos.org",
+                    "success": res_ad["success"],
+                    "latency_ms": res_ad.get("latency_ms", 0),
+                    "msg": res_ad["message"],
+                    "badge": "高阶插件"
+                })
+            else:
+                results.append({
+                    "name": "Adanos 情绪与预测",
+                    "target": "api.adanos.org",
                     "success": None,
                     "latency_ms": 0,
                     "msg": "未配置 Key (选配)",

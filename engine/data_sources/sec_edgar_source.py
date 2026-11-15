@@ -187,6 +187,9 @@ class SecEdgarSource:
         lines.append("")
         return "\n".join(lines)
 
+    # 别名兼容
+    fetch_company_filings = fetch_filings
+
 
 # 全局单例
 sec_edgar_source = SecEdgarSource()
