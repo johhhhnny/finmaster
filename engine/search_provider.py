@@ -138,10 +138,10 @@ class TavilySearcher:
         self,
         query: str,
         max_results: int = 5,
-        search_depth: str = "basic",
+        search_depth: str = "advanced",
         include_answer: bool = True
     ) -> SearchResult:
-        """执行 Tavily 检索并返回结构化结果"""
+        """执行 Tavily 深度金融检索并返回结构化结果 (内置代理抖动自动重试)"""
         if not self.is_configured():
             return SearchResult(
                 success=False,
@@ -152,53 +152,64 @@ class TavilySearcher:
 
         import requests
         start_t = time.time()
-        try:
-            payload = {
-                "api_key": self.api_key.strip(),
-                "query": query,
-                "max_results": max_results,
-                "search_depth": search_depth,
-                "include_answer": include_answer
-            }
-            resp = requests.post("https://api.tavily.com/search", json=payload, timeout=20)
-            latency = (time.time() - start_t) * 1000.0
+        payload = {
+            "api_key": self.api_key.strip(),
+            "query": query,
+            "max_results": max_results,
+            "search_depth": search_depth,
+            "include_answer": include_answer
+        }
 
-            if resp.status_code == 200:
-                data = resp.json()
-                raw_results = data.get("results", [])
-                answer = data.get("answer", "")
-                parsed = []
-                for item in raw_results:
-                    parsed.append({
-                        "title": item.get("title", ""),
-                        "url": item.get("url", ""),
-                        "content": item.get("content", ""),
-                        "score": str(item.get("score", 0))
-                    })
-                return SearchResult(
-                    success=True,
-                    provider="Tavily AI Search",
-                    query=query,
-                    answer=answer,
-                    results=parsed,
-                    latency_ms=latency
-                )
-            else:
-                return SearchResult(
-                    success=False,
-                    provider="Tavily AI Search",
-                    query=query,
-                    error=f"HTTP {resp.status_code}: {resp.text[:200]}",
-                    latency_ms=(time.time() - start_t) * 1000.0
-                )
-        except Exception as e:
-            return SearchResult(
-                success=False,
-                provider="Tavily AI Search",
-                query=query,
-                error=str(e),
-                latency_ms=(time.time() - start_t) * 1000.0
-            )
+        last_err = ""
+        # 面对本地网络代理通道抖动，最多重试 3 次
+        for attempt in range(3):
+            try:
+                resp = requests.post("https://api.tavily.com/search", json=payload, timeout=25)
+                latency = (time.time() - start_t) * 1000.0
+
+                if resp.status_code == 200:
+                    data = resp.json()
+                    raw_results = data.get("results", [])
+                    answer = data.get("answer") or ""
+                    parsed = []
+                    for item in raw_results:
+                        parsed.append({
+                            "title": item.get("title", ""),
+                            "url": item.get("url", ""),
+                            "content": item.get("content", ""),
+                            "score": str(item.get("score", 0))
+                        })
+                    return SearchResult(
+                        success=True,
+                        provider="Tavily AI Search",
+                        query=query,
+                        answer=answer,
+                        results=parsed,
+                        latency_ms=latency
+                    )
+                elif resp.status_code in (500, 502, 503, 504):
+                    last_err = f"HTTP {resp.status_code}: {resp.text[:150]}"
+                    time.sleep(1.5 * (attempt + 1))
+                    continue
+                else:
+                    return SearchResult(
+                        success=False,
+                        provider="Tavily AI Search",
+                        query=query,
+                        error=f"HTTP {resp.status_code}: {resp.text[:200]}",
+                        latency_ms=(time.time() - start_t) * 1000.0
+                    )
+            except Exception as e:
+                last_err = str(e)
+                time.sleep(1.5 * (attempt + 1))
+
+        return SearchResult(
+            success=False,
+            provider="Tavily AI Search",
+            query=query,
+            error=last_err,
+            latency_ms=(time.time() - start_t) * 1000.0
+        )
 
 
 class DuckDuckGoSearcher:
@@ -316,15 +327,20 @@ class SearchManager:
                 "success": True
             }
 
-        # 3. 构造高质量金融针对性检索 Query
-        query = f"{target.strip()} 股票代码 最新收盘价 总市值 季度财报 营收 净利润 自由现金流 2025 2026"
+        # 3. 构造高质量金融针对性检索 Query (支持中英文标的智能适配与上市/未上市双模态)
+        target_clean = target.strip()
+        is_pure_ascii = all(ord(c) < 128 for c in target_clean)
+        if is_pure_ascii:
+            query = f"{target_clean} stock price market cap shares valuation revenue profit free cash flow 2024 2025"
+        else:
+            query = f"{target_clean} 股票代码 股价 市值 估值 财报 营收 净利润 自由现金流 2024 2025"
         if focus:
             query += f" {focus.strip()}"
 
         # 4. 如果指定 Tavily 或处于 Auto 模式且配置了 Tavily Key
         if provider in ("tavily", "auto") and self.tavily.is_configured():
-            logger.info(f"使用 Tavily 检索标的真实金融数据: {target}")
-            res = self.tavily.search(query=query, max_results=5, search_depth="basic", include_answer=True)
+            logger.info(f"使用 Tavily 深度检索标的真实金融数据: {target_clean}")
+            res = self.tavily.search(query=query, max_results=5, search_depth="advanced", include_answer=True)
             if res.success:
                 return {
                     "use_gemini_grounding": False,
