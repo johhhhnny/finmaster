@@ -145,6 +145,24 @@ class YFinanceSource:
             w52_low = info.get("fiftyTwoWeekLow")
             w52_high = info.get("fiftyTwoWeekHigh")
 
+            # 若 info 受临时网络抖动或未全量返回，降级使用 yfinance 的 fast_info 补齐行情核心指标
+            try:
+                fi = ticker.fast_info
+                if not price and hasattr(fi, "last_price") and fi.last_price:
+                    price = float(fi.last_price)
+                if not market_cap and hasattr(fi, "market_cap") and fi.market_cap:
+                    market_cap = float(fi.market_cap)
+                if not shares_out and hasattr(fi, "shares") and fi.shares:
+                    shares_out = float(fi.shares)
+                if not w52_low and hasattr(fi, "year_low") and fi.year_low:
+                    w52_low = float(fi.year_low)
+                if not w52_high and hasattr(fi, "year_high") and fi.year_high:
+                    w52_high = float(fi.year_high)
+                if hasattr(fi, "currency") and fi.currency:
+                    currency = str(fi.currency)
+            except Exception:
+                pass
+
             # 2. 获取近4季度三张表
             quarterly_financials = []
             try:
