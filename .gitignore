@@ -1,0 +1,34 @@
+# macOS 特定系统垃圾文件
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Environments & Secrets
+.env
+.env.local
+.env.*.local
+*.env
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv/
+.venv
+
+# Streamlit
+.streamlit/secrets.toml
+.streamlit/credentials.toml
+
+# Reports cache (uncomment to keep generated reports local only)
+# reports/*
+# !reports/.gitkeep
