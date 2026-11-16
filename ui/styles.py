@@ -481,13 +481,19 @@ footer {
     flex-direction: column !important;
     width: 100% !important;
 }
+/* 确保 Tab 内容面板为 100% 满宽，且仅在激活态显示，未激活态严格隐藏 */
 [data-testid="stTabs"] [data-testid="stTabPanel"],
-[data-testid="stTabs"] [role="tabpanel"],
-[data-testid="stTabPanel"] {
-    display: block !important;
+[data-testid="stTabs"] [role="tabpanel"] {
     width: 100% !important;
     margin-top: 10px !important;
-    overflow: visible !important;
+}
+[data-testid="stTabs"] [data-testid="stTabPanel"][hidden],
+[data-testid="stTabs"] [data-testid="stTabPanel"][data-st-inactive],
+[data-testid="stTabs"] [role="tabpanel"][hidden],
+[data-testid="stTabs"] [role="tabpanel"][data-st-inactive] {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
 }
 
 /* 单个 Tab 按钮基类：独立等宽 25% 实体卡片 (支持所有 div/button/react-aria 渲染) */
