@@ -425,13 +425,15 @@ footer {
     height: 0 !important;
 }
 
-/* 12. Tabs 现代化分段卡片控制台 (Segmented Pill Card Tabs) */
+/* 12. Tabs 现代化分段卡片控制台 (Segmented Pill Card Tabs for React-Aria & Standard) */
 [data-testid="stTabs"] {
     margin-top: 10px !important;
     margin-bottom: 14px !important;
 }
 
-/* 隐藏 Streamlit 默认的生硬底边线与红色滑动条 */
+/* 彻底隐藏 Streamlit / React-Aria 默认的下划线指示器与底边滑动条 */
+[data-testid="stTabs"] .react-aria-SelectionIndicator,
+[data-testid="stTabs"] [class*="SelectionIndicator"],
 [data-testid="stTabs"] div[data-baseweb="tab-highlight"],
 [data-testid="stTabs"] div[data-baseweb="tab-border"] {
     display: none !important;
@@ -439,25 +441,34 @@ footer {
     visibility: hidden !important;
     opacity: 0 !important;
 }
+[data-testid="stTabs"] [role="tablist"]::after,
+[data-testid="stTabs"] .react-aria-TabList::after {
+    display: none !important;
+    content: none !important;
+}
 
 /* 标签栏滑轨底座：优雅的中性灰浅槽容器 */
-[data-testid="stTabs"] div[data-baseweb="tab-list"],
-[data-testid="stTabs"] div[role="tablist"] {
+[data-testid="stTabs"] [role="tablist"],
+[data-testid="stTabs"] .react-aria-TabList,
+[data-testid="stTabs"] div[data-baseweb="tab-list"] {
     background-color: #f1f5f9 !important;
     border: 1px solid #e2e8f0 !important;
-    border-radius: 10px !important;
-    padding: 5px !important;
-    gap: 8px !important;
+    border-radius: 12px !important;
+    padding: 6px !important;
+    gap: 10px !important;
     display: flex !important;
     width: 100% !important;
     align-items: stretch !important;
     box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03) !important;
+    overflow: visible !important;
 }
 
-/* 单个 Tab 按钮基类：独立的高辨识度卡片 */
-[data-testid="stTabs"] button[role="tab"],
-[data-testid="stTabs"] button[data-testid="stTab"] {
-    flex: 1 !important;
+/* 单个 Tab 按钮基类：独立等宽卡片 (支持所有 div/button/react-aria 渲染) */
+[data-testid="stTabs"] [data-testid="stTab"],
+[data-testid="stTabs"] .react-aria-Tab,
+[data-testid="stTabs"] [role="tab"],
+[data-testid="stTabs"] button[role="tab"] {
+    flex: 1 1 0% !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -465,20 +476,22 @@ footer {
     background-color: #ffffff !important;
     border: 1px solid #e2e8f0 !important;
     border-radius: 8px !important;
-    padding: 0.45rem 0.75rem !important;
+    padding: 8px 12px !important;
     margin: 0 !important;
-    min-height: 2.35rem !important;
-    height: auto !important;
+    min-height: 2.45rem !important;
+    height: 2.45rem !important;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
     transition: all 0.15s ease-in-out !important;
     cursor: pointer !important;
     outline: none !important;
+    position: relative !important;
 }
 
 /* 未激活状态的文字与图标 */
-[data-testid="stTabs"] button[role="tab"] *,
-[data-testid="stTabs"] button[data-testid="stTab"] * {
-    font-size: 0.81rem !important;
+[data-testid="stTabs"] [data-testid="stTab"] *,
+[data-testid="stTabs"] .react-aria-Tab *,
+[data-testid="stTabs"] [role="tab"] * {
+    font-size: 0.82rem !important;
     font-weight: 500 !important;
     color: #475569 !important;
     line-height: 1.2 !important;
@@ -486,29 +499,40 @@ footer {
 }
 
 /* 悬停状态：高亮浮起与边框加深 */
-[data-testid="stTabs"] button[role="tab"]:hover,
-[data-testid="stTabs"] button[data-testid="stTab"]:hover {
+[data-testid="stTabs"] [data-testid="stTab"]:hover,
+[data-testid="stTabs"] .react-aria-Tab:hover,
+[data-testid="stTabs"] [role="tab"]:hover,
+[data-testid="stTabs"] [data-testid="stTab"][data-hovered] {
     background-color: #f8fafc !important;
     border-color: #94a3b8 !important;
     transform: translateY(-1px) !important;
     box-shadow: 0 3px 6px rgba(0, 0, 0, 0.06) !important;
 }
-[data-testid="stTabs"] button[role="tab"]:hover *,
-[data-testid="stTabs"] button[data-testid="stTab"]:hover * {
+[data-testid="stTabs"] [data-testid="stTab"]:hover *,
+[data-testid="stTabs"] .react-aria-Tab:hover *,
+[data-testid="stTabs"] [role="tab"]:hover * {
     color: #0f172a !important;
 }
 
-/* 激活选中状态：明亮微蓝卡片底色 + 品牌科技蓝边框 + 蓝字加粗 + 醒目微投影 */
-[data-testid="stTabs"] button[role="tab"][aria-selected="true"],
-[data-testid="stTabs"] button[data-testid="stTab"][aria-selected="true"] {
+/* 激活选中状态：明亮微蓝卡片底色 + 品牌科技蓝边框 + 蓝字加粗 + 醒目投影 */
+[data-testid="stTabs"] [data-testid="stTab"][data-selected],
+[data-testid="stTabs"] [data-testid="stTab"][data-selected="true"],
+[data-testid="stTabs"] [data-testid="stTab"][aria-selected="true"],
+[data-testid="stTabs"] .react-aria-Tab[data-selected],
+[data-testid="stTabs"] [role="tab"][data-selected],
+[data-testid="stTabs"] [role="tab"][aria-selected="true"] {
     background-color: #eff6ff !important;
     border: 1.5px solid #2563eb !important;
-    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15) !important;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.18) !important;
     transform: translateY(-1px) !important;
 }
-[data-testid="stTabs"] button[role="tab"][aria-selected="true"] *,
-[data-testid="stTabs"] button[data-testid="stTab"][aria-selected="true"] * {
-    font-size: 0.82rem !important;
+[data-testid="stTabs"] [data-testid="stTab"][data-selected] *,
+[data-testid="stTabs"] [data-testid="stTab"][data-selected="true"] *,
+[data-testid="stTabs"] [data-testid="stTab"][aria-selected="true"] *,
+[data-testid="stTabs"] .react-aria-Tab[data-selected] *,
+[data-testid="stTabs"] [role="tab"][data-selected] *,
+[data-testid="stTabs"] [role="tab"][aria-selected="true"] * {
+    font-size: 0.83rem !important;
     font-weight: 700 !important;
     color: #1d4ed8 !important;
 }
