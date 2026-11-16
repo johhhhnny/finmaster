@@ -33,30 +33,21 @@ def render_workbench(state: SidebarState):
     else:
         mode_badge = '<span style="font-size: 0.72rem; font-weight: 600; color: #047857; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 3px 8px; border-radius: 6px;">🤖 单智能体 (Single-Agent)</span>'
 
-    curr_mode_idx = st.session_state.get("workbench_search_mode_idx", 0)
-    if curr_mode_idx == 0:
-        search_badge = '<span style="font-size: 0.72rem; color: #166534; background: #ecfdf5; border: 1px solid #bbf7d0; padding: 3px 8px; border-radius: 6px; font-weight: 600;">⚡ 七大硬核金融底座 (秒级免搜索)</span>'
-    elif curr_mode_idx == 1:
-        search_badge = '<span style="font-size: 0.72rem; color: #0284c7; background: #f0f9ff; border: 1px solid #bae6fd; padding: 3px 8px; border-radius: 6px; font-weight: 600;">🤖 智能多源调度 (硬核优先，按需搜索)</span>'
-    else:
-        search_badge = '<span style="font-size: 0.72rem; color: #b45309; background: #fffbeb; border: 1px solid #fde68a; padding: 3px 8px; border-radius: 6px; font-weight: 600;">🌐 全网实时新闻与商业动态检索</span>'
-
     st.markdown(f"""
     <div class="skill-hero-card">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px;">
             <div style="flex: 1;">
-                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
-                    <span style="font-size: 1.6rem; line-height: 1;">{skill_icon}</span>
-                    <span style="font-size: 1.32rem; font-weight: 700; color: #0f172a; letter-spacing: -0.01em;">{skill_title}</span>
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+                    <span style="font-size: 1.5rem; line-height: 1;">{skill_icon}</span>
+                    <span style="font-size: 1.25rem; font-weight: 700; color: #0f172a; letter-spacing: -0.01em;">{skill_title}</span>
                     <span style="font-size: 0.72rem; background: #f1f5f9; color: #475569; padding: 2px 8px; border-radius: 9999px; font-weight: 600;">{skill_category}</span>
                 </div>
-                <div style="font-size: 0.83rem; color: #475569; line-height: 1.45;">
+                <div style="font-size: 0.82rem; color: #475569; line-height: 1.4;">
                     <strong style="color: #1e293b;">核心方法论：</strong>{skill_desc}
                 </div>
             </div>
-            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 6px;">
+            <div>
                 {mode_badge}
-                {search_badge}
             </div>
         </div>
     </div>
@@ -74,9 +65,9 @@ def render_workbench(state: SidebarState):
     with param_card_box:
         p_head_col1, p_head_col2 = st.columns([1, 2])
         with p_head_col1:
-            st.markdown('<div style="font-size: 0.94rem; font-weight: 700; color: #0f172a; margin-top: 2px;">📝 设定研究参数</div>', unsafe_allow_html=True)
+            st.markdown('<div style="font-size: 0.92rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 6px;"><span>📝</span> 设定研究参数</div>', unsafe_allow_html=True)
         with p_head_col2:
-            st.markdown('<div style="text-align: right; font-size: 0.74rem; color: #64748b; margin-top: 3px;">⚡ 点击下方标的标签可 1 键快捷填入</div>', unsafe_allow_html=True)
+            st.markdown('<div style="text-align: right; font-size: 0.73rem; color: #64748b;">⚡ 点选下方快捷药丸，秒级填入分析代码</div>', unsafe_allow_html=True)
 
         if has_target:
             q_cols = st.columns(6)
@@ -121,68 +112,73 @@ def render_workbench(state: SidebarState):
                 else:
                     user_inputs[k] = st.text_input(label_display, value=initial_text, placeholder=placeholder)
 
-        # 搜索调度模式选择器 (默认：关闭搜索，依托7大金融底座极速出具)
+        # 搜索调度模式选择器 (默认：关闭全网搜索，依托 7 大确定性金融底座秒级极速出具)
         st.markdown("""
-        <div style="margin-top: 10px; margin-bottom: 4px; font-size: 0.78rem; font-weight: 600; color: #475569; display: flex; align-items: center; justify-content: space-between;">
-            <span>🌐 全网搜索调度策略：</span>
-            <span style="font-size: 0.72rem; color: #059669; font-weight: 500;">⚡ 默认关闭：依托 7 大硬核金融底座秒级出具</span>
+        <div style="margin-top: 10px; margin-bottom: 5px; font-size: 0.78rem; font-weight: 600; color: #334155;">
+            🌐 搜索调度策略
         </div>
         """, unsafe_allow_html=True)
         search_mode_options = [
-            "🚫 关闭搜索 (默认 · 依托7大确定性金融底座，秒级极速严谨)",
-            "🤖 智能调度 (优先硬核数据，无财报/突发新闻时按需启用)",
-            "🌐 强制搜索 (检索全网最新新闻资讯与即时动态)"
+            "🚫 关闭全网搜索 (默认)",
+            "🤖 智能自适应调度",
+            "🌐 强制全网搜索"
         ]
 
         if "workbench_search_mode_idx" not in st.session_state:
             st.session_state["workbench_search_mode_idx"] = 0
 
         selected_mode_str = st.radio(
-            "搜索调度模式",
+            "搜索调度策略",
             search_mode_options,
             index=st.session_state["workbench_search_mode_idx"],
             horizontal=True,
             label_visibility="collapsed"
         )
 
-        if "关闭搜索" in selected_mode_str:
+        if "关闭" in selected_mode_str:
             chosen_search_mode = "off"
             st.session_state["workbench_search_mode_idx"] = 0
-        elif "智能调度" in selected_mode_str:
+            mode_desc = '⚡ <strong>确定性优先</strong>：完全依托 FRED / Tiingo / yfinance / AkShare 等 7 大硬核金融底座，0 次网络检索，秒级极速严谨出具。'
+            mode_desc_border = "#bbf7d0"
+            mode_desc_bg = "#f0fdf4"
+            mode_desc_color = "#166534"
+        elif "智能" in selected_mode_str:
             chosen_search_mode = "smart"
             st.session_state["workbench_search_mode_idx"] = 1
+            mode_desc = '🤖 <strong>智能自适应</strong>：硬核底座优先；仅在检测到未上市公司、无公开财报或突发黑天鹅舆情诉求时按需激活搜索。'
+            mode_desc_border = "#bae6fd"
+            mode_desc_bg = "#f0f9ff"
+            mode_desc_color = "#0369a1"
         else:
             chosen_search_mode = "on"
             st.session_state["workbench_search_mode_idx"] = 2
+            mode_desc = '🌐 <strong>广域全网检索</strong>：除硬核底座外，并发检索全网最新商业新闻、即时研报与突发动态。'
+            mode_desc_border = "#fde68a"
+            mode_desc_bg = "#fffbeb"
+            mode_desc_color = "#92400e"
+
+        st.markdown(f'''
+        <div style="font-size: 0.74rem; color: {mode_desc_color}; background: {mode_desc_bg}; border: 1px solid {mode_desc_border}; border-radius: 6px; padding: 6px 12px; margin-top: 3px; margin-bottom: 12px; line-height: 1.45;">
+            {mode_desc}
+        </div>
+        ''', unsafe_allow_html=True)
 
         # 启动按钮与系统状态栏
-        btn_action_col, hint_action_col = st.columns([1.2, 3.8])
+        btn_action_col, hint_action_col = st.columns([1.1, 2.9])
         with btn_action_col:
             start_btn = st.button("🚀 启动投研分析", type="primary", use_container_width=True)
         with hint_action_col:
             if not client.is_configured():
                 st.warning("👈 请先在左侧侧边栏填入 Gemini API Key 即可启动！")
             else:
-                if chosen_search_mode == "off":
-                    net_text = "已关闭 (7大底座秒级模式)"
-                    net_color = "#166534"
-                    est_time = "8~15s" if skill_mode == "multi_agent" else "3~5s"
-                elif chosen_search_mode == "smart":
-                    net_text = "智能调度 (硬核优先，按需触发)"
-                    net_color = "#0284c7"
-                    est_time = "10~18s" if skill_mode == "multi_agent" else "5~8s"
-                else:
-                    net_text = "强制搜索 (含全网实时检索)"
-                    net_color = "#b45309"
-                    est_time = "18~30s" if skill_mode == "multi_agent" else "10~15s"
-
+                est_time = "8~15s" if skill_mode == "multi_agent" else ("3~5s" if chosen_search_mode == "off" else ("5~10s" if chosen_search_mode == "smart" else "12~20s"))
                 st.markdown(f'''
-                <div style="display: flex; align-items: center; height: 100%; min-height: 2.35rem; font-size: 0.78rem; color: #475569; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0 12px;">
-                    <span>⚡ <strong>引擎状态</strong>：<span style="color: #059669; font-weight: 600;">就绪 ({saved_model})</span></span>
-                    <span style="margin: 0 10px; color: #cbd5e1;">|</span>
-                    <span>🌐 <strong>全网搜索</strong>：<span style="color: {net_color}; font-weight: 600;">{net_text}</span></span>
-                    <span style="margin: 0 10px; color: #cbd5e1;">|</span>
-                    <span>⏱️ <strong>预计耗时</strong>：<span style="color: #1e293b; font-weight: 600;">{est_time}</span></span>
+                <div style="display: flex; align-items: center; justify-content: space-between; height: 100%; min-height: 2.4rem; font-size: 0.76rem; color: #475569; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0 14px;">
+                    <span>⚡ <strong>推理引擎</strong>：<span style="color: #059669; font-weight: 600;">{saved_model}</span></span>
+                    <span style="color: #cbd5e1;">|</span>
+                    <span>🏦 <strong>数据底座</strong>：<span style="color: #1d4ed8; font-weight: 600;">7 大官方源就绪</span></span>
+                    <span style="color: #cbd5e1;">|</span>
+                    <span>⏱️ <strong>预估耗时</strong>：<span style="color: #0f172a; font-weight: 600;">{est_time}</span></span>
                 </div>
                 ''', unsafe_allow_html=True)
 
@@ -209,57 +205,73 @@ def render_workbench(state: SidebarState):
             with c1:
                 st.markdown("""
                 <div class="master-preview-card" style="border-top: 3px solid #10b981;">
-                    <div style="font-weight: 700; font-size: 0.92rem; color: #065f46; margin-bottom: 4px;">🟢 段永平视角</div>
-                    <div style="font-size: 0.76rem; font-weight: 600; color: #1e293b; margin-bottom: 8px;">商业模式与护城河分析师</div>
-                    <ul style="font-size: 0.74rem; color: #475569; padding-left: 16px; margin: 0; line-height: 1.55;">
-                        <li><strong>商业模式本质</strong>：谁付钱？为何买单？边际成本如何？</li>
-                        <li><strong>财报分部拆解</strong>：最新收入与真实利润分部。</li>
-                        <li><strong>五维护城河检验</strong>：品牌心智、网络效应、转换成本、定价权。</li>
-                        <li><strong>代际异化</strong>：是轻资产印钞机，还是滑向重资产重工业？</li>
-                        <li><strong>商业模式评级</strong>：A+ / A / A- / B 及护城河星级。</li>
-                    </ul>
+                    <div style="font-weight: 700; font-size: 0.94rem; color: #065f46; margin-bottom: 2px;">🟢 段永平视角</div>
+                    <div style="font-size: 0.74rem; font-weight: 600; color: #64748b; margin-bottom: 10px;">商业模式与护城河分析师</div>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <div style="font-size: 0.77rem; color: #334155; line-height: 1.55;">
+                            <strong style="color: #0f172a;">1. 商业模式本质：</strong>谁付钱？为何买单？边际成本与自由现金流能否持续扩张。
+                        </div>
+                        <div style="font-size: 0.77rem; color: #334155; line-height: 1.55;">
+                            <strong style="color: #0f172a;">2. 五维护城河检验：</strong>品牌用户心智、网络效应、转换成本、独占定价权。
+                        </div>
+                        <div style="font-size: 0.77rem; color: #334155; line-height: 1.55;">
+                            <strong style="color: #0f172a;">3. 业务财报穿透：</strong>分部收入拆解，区分轻资产印钞机与重资产陷阱，出具评级。
+                        </div>
+                    </div>
                 </div>
                 """, unsafe_allow_html=True)
             with c2:
                 st.markdown("""
                 <div class="master-preview-card" style="border-top: 3px solid #3b82f6;">
-                    <div style="font-weight: 700; font-size: 0.92rem; color: #1e40af; margin-bottom: 4px;">🔵 巴菲特视角</div>
-                    <div style="font-size: 0.76rem; font-weight: 600; color: #1e293b; margin-bottom: 8px;">财务造血与估值审计分析师</div>
-                    <ul style="font-size: 0.74rem; color: #475569; padding-left: 16px; margin: 0; line-height: 1.55;">
-                        <li><strong>核心主营穿透</strong>：剔除浮动损益还原核心主营EPS。</li>
-                        <li><strong>现金流审计</strong>：经营现金流、CapEx吞噬比、真自由现金流。</li>
-                        <li><strong>资产负债表拆解</strong>：纯流动性现金池，测算每股净现金。</li>
-                        <li><strong>扣现金估值</strong>：测算 Ex-Cash PE，对比5年中枢。</li>
-                        <li><strong>三情景估值推演</strong>：乐观/中性/悲观估值与安全边际。</li>
-                    </ul>
+                    <div style="font-weight: 700; font-size: 0.94rem; color: #1e40af; margin-bottom: 2px;">🔵 巴菲特视角</div>
+                    <div style="font-size: 0.74rem; font-weight: 600; color: #64748b; margin-bottom: 10px;">财务造血与估值审计分析师</div>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <div style="font-size: 0.77rem; color: #334155; line-height: 1.55;">
+                            <strong style="color: #0f172a;">1. 真实主营与现金流：</strong>剔除浮动损益穿透核心EPS，严审 CapEx 与真自由现金流。
+                        </div>
+                        <div style="font-size: 0.77rem; color: #334155; line-height: 1.55;">
+                            <strong style="color: #0f172a;">2. 资产负债表拆解：</strong>穿透纯流动性现金池，测算扣现金估值 (Ex-Cash PE)。
+                        </div>
+                        <div style="font-size: 0.77rem; color: #334155; line-height: 1.55;">
+                            <strong style="color: #0f172a;">3. 三情景内在价值推演：</strong>结合 5 年估值中枢与折现率，给出严格安全边际估值区间。
+                        </div>
+                    </div>
                 </div>
                 """, unsafe_allow_html=True)
             with c3:
                 st.markdown("""
                 <div class="master-preview-card" style="border-top: 3px solid #f59e0b;">
-                    <div style="font-weight: 700; font-size: 0.92rem; color: #92400e; margin-bottom: 4px;">🟠 芒格视角</div>
-                    <div style="font-size: 0.76rem; font-weight: 600; color: #1e293b; margin-bottom: 8px;">行业竞争与逆向检验分析师</div>
-                    <ul style="font-size: 0.74rem; color: #475569; padding-left: 16px; margin: 0; line-height: 1.55;">
-                        <li><strong>市场格局划分</strong>：竞争对手份额拉锯与商业机制分化。</li>
-                        <li><strong>范式转移冲击</strong>：新技术带来的创新者窘境与自残防御。</li>
-                        <li><strong>芒格式逆向检验</strong>：推演5个导致利润断崖的致命情境。</li>
-                        <li><strong>冷酷逆向思维</strong>：寻找足以摧毁护城河的隐蔽阿喀琉斯之踵。</li>
-                        <li><strong>竞争护城河星级</strong>：严苛1-5星独立评级。</li>
-                    </ul>
+                    <div style="font-weight: 700; font-size: 0.94rem; color: #92400e; margin-bottom: 2px;">🟠 芒格视角</div>
+                    <div style="font-size: 0.74rem; font-weight: 600; color: #64748b; margin-bottom: 10px;">行业竞争与逆向检验分析师</div>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <div style="font-size: 0.77rem; color: #334155; line-height: 1.55;">
+                            <strong style="color: #0f172a;">1. 行业终局与范式转移：</strong>推演竞争对手份额拉锯，警惕颠覆性技术与创新者窘境。
+                        </div>
+                        <div style="font-size: 0.77rem; color: #334155; line-height: 1.55;">
+                            <strong style="color: #0f172a;">2. 冷酷逆向思维 (Inversion)：</strong>寻找足以击穿护城河的致命隐患与隐蔽阿喀琉斯之踵。
+                        </div>
+                        <div style="font-size: 0.77rem; color: #334155; line-height: 1.55;">
+                            <strong style="color: #0f172a;">3. 五大毁灭情境推演：</strong>若企业未来利润腰斩甚至断崖，最可能源于哪些不可逆风险。
+                        </div>
+                    </div>
                 </div>
                 """, unsafe_allow_html=True)
             with c4:
                 st.markdown("""
                 <div class="master-preview-card" style="border-top: 3px solid #8b5cf6;">
-                    <div style="font-weight: 700; font-size: 0.92rem; color: #5b21b6; margin-bottom: 4px;">🟣 李录视角</div>
-                    <div style="font-size: 0.76rem; font-weight: 600; color: #1e293b; margin-bottom: 8px;">治理风险与文明确定性分析师</div>
-                    <ul style="font-size: 0.74rem; color: #475569; padding-left: 16px; margin: 0; line-height: 1.55;">
-                        <li><strong>管理层画像</strong>：受托人品行、危机应激纠错、资本配置纪律。</li>
-                        <li><strong>反垄断与司法穿透</strong>：监管反垄断与硬性黑天鹅合规边界。</li>
-                        <li><strong>治理结构</strong>：双重股权、股权激励（SBC）与回购抵消度。</li>
-                        <li><strong>十年文明确定性</strong>：10年维度是否顺应生产力不可逆趋势。</li>
-                        <li><strong>综合治理评级</strong>：长期主义现代化文明视角评级。</li>
-                    </ul>
+                    <div style="font-weight: 700; font-size: 0.94rem; color: #5b21b6; margin-bottom: 2px;">🟣 李录视角</div>
+                    <div style="font-size: 0.74rem; font-weight: 600; color: #64748b; margin-bottom: 10px;">治理风险与文明确定性分析师</div>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <div style="font-size: 0.77rem; color: #334155; line-height: 1.55;">
+                            <strong style="color: #0f172a;">1. 管理层画像与资本配置：</strong>考察受托人品行、危机纠错能力与股东资本配置纪律。
+                        </div>
+                        <div style="font-size: 0.77rem; color: #334155; line-height: 1.55;">
+                            <strong style="color: #0f172a;">2. 治理结构与合规边界：</strong>双重股权结构穿透、SBC 股权稀释与监管反垄断安全边界。
+                        </div>
+                        <div style="font-size: 0.77rem; color: #334155; line-height: 1.55;">
+                            <strong style="color: #0f172a;">3. 十年文明现代化确定性：</strong>跨越 10 年维度，企业是否顺应全球生产力演进与不可逆趋势。
+                        </div>
+                    </div>
                 </div>
                 """, unsafe_allow_html=True)
 
@@ -312,7 +324,7 @@ def render_workbench(state: SidebarState):
                 <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; height: 100%;">
                     <div style="font-size: 0.88rem; font-weight: 700; color: #0f172a; margin-bottom: 6px;">🛡️ 防本地历史数据污染</div>
                     <div style="font-size: 0.76rem; color: #475569; line-height: 1.5;">
-                        严禁从本地历史缓存中读取最新股价、市值或财报！所有数据必须经由 Gemini 官方 Google Search 检索官方一手 10-Q / 10-K 与最新收盘行情，并强制注明数据截断时间戳。
+                        严禁从本地历史缓存中读取最新股价、市值或财报！所有财务与宏观数据必须直接经由 FRED、Tiingo、yfinance、AkShare 等 7 大官方确定性底座及官方一手 10-Q / 10-K 获取，并强制注明数据截断时间戳。
                     </div>
                 </div>
                 """, unsafe_allow_html=True)

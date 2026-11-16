@@ -456,7 +456,7 @@ footer {
 .skill-hero-card {
     background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
     border: 1px solid #e2e8f0;
-    border-radius: 10px;
+    border-radius: 12px;
     padding: 16px 20px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
     margin-bottom: 14px;
@@ -464,11 +464,61 @@ footer {
 .master-preview-card {
     background: #ffffff;
     border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    padding: 14px 14px 12px 14px;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    border-radius: 10px;
+    padding: 18px 18px 16px 18px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
     height: 100%;
-    min-height: 200px;
+    min-height: 220px;
+    transition: all 0.2s ease;
+}
+.master-preview-card:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.05);
+    transform: translateY(-2px);
+}
+
+/* 预设标的轻量药丸按钮 */
+div[data-testid="stColumn"] div.stButton > button:not([kind="primary"]) {
+    border-radius: 9999px !important;
+    font-size: 0.74rem !important;
+    font-weight: 500 !important;
+    padding: 4px 12px !important;
+    min-height: 30px !important;
+    line-height: 1.2 !important;
+    border: 1px solid #e2e8f0 !important;
+    background-color: #f8fafc !important;
+    color: #475569 !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02) !important;
+    transition: all 0.15s ease !important;
+}
+div[data-testid="stColumn"] div.stButton > button:not([kind="primary"]):hover {
+    border-color: #0284c7 !important;
+    background-color: #f0f9ff !important;
+    color: #0284c7 !important;
+    transform: translateY(-1px) !important;
+}
+
+/* 主工作区水平单选组微胶囊卡片美化 */
+.main div[data-testid="stRadio"] div[role="radiogroup"] {
+    gap: 0.75rem !important;
+    padding: 2px 0 !important;
+}
+.main div[data-testid="stRadio"] div[role="radiogroup"] label {
+    padding: 0.28rem 0.7rem !important;
+    border-radius: 8px !important;
+    background-color: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+    transition: all 0.15s ease !important;
+}
+.main div[data-testid="stRadio"] div[role="radiogroup"] label:hover {
+    border-color: #38bdf8 !important;
+    background-color: #f0f9ff !important;
+}
+.main div[data-testid="stRadio"] div[role="radiogroup"] label p {
+    font-size: 0.79rem !important;
+    font-weight: 500 !important;
+    color: #334155 !important;
 }
 
 /* 14. 知识库研报阅读器与 KPI 视觉卡片 */
