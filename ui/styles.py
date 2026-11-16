@@ -723,15 +723,15 @@ footer {
     height: 0 !important;
 }
 
-/* 单个 Tab 按钮基类：独立等宽 25% 实体卡片 (支持所有 div/button/react-aria 渲染) */
+/* 单个 Tab 按钮基类：自适应等宽弹性实体卡片 (自动完美适配 2/3/4/5 项标签，彻底消除右侧空隙与溢出) */
 [data-testid="stTabs"] [data-testid="stTab"],
 [data-testid="stTabs"] .react-aria-Tab,
 [data-testid="stTabs"] [role="tab"],
 [data-testid="stTabs"] button[role="tab"] {
-    flex: 1 1 calc(25% - 8px) !important;
-    width: calc(25% - 8px) !important;
-    min-width: calc(25% - 8px) !important;
-    max-width: calc(25% - 8px) !important;
+    flex: 1 1 0 !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
     box-sizing: border-box !important;
     display: flex !important;
     align-items: center !important;
@@ -740,7 +740,7 @@ footer {
     background-color: #ffffff !important;
     border: 1px solid #e2e8f0 !important;
     border-radius: 8px !important;
-    padding: 8px 10px !important;
+    padding: 8px 12px !important;
     margin: 0 !important;
     min-height: 2.45rem !important;
     height: 2.45rem !important;
@@ -749,6 +749,7 @@ footer {
     cursor: pointer !important;
     outline: none !important;
     position: relative !important;
+    overflow: hidden !important;
 }
 
 /* 未激活状态的文字与图标 */
@@ -760,6 +761,8 @@ footer {
     color: #475569 !important;
     line-height: 1.2 !important;
     white-space: nowrap !important;
+    text-overflow: ellipsis !important;
+    overflow: hidden !important;
 }
 
 /* 悬停状态：高亮浮起与边框加深 */
@@ -801,6 +804,9 @@ footer {
     font-size: 0.82rem !important;
     font-weight: 700 !important;
     color: #1d4ed8 !important;
+    white-space: nowrap !important;
+    text-overflow: ellipsis !important;
+    overflow: hidden !important;
 }
 
 /* Tab 下方面板内容与卡片间距舒适化 */
