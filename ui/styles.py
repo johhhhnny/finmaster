@@ -8,17 +8,51 @@ def inject_custom_css():
     """注入 FinMaster 专业金融终端定制样式"""
     st.markdown("""
 <style>
-/* 1. 彻底消除主内容区域顶部巨大空白 (默认 6rem 留白) 并扩展有效宽度 */
+/* 1. 彻底消除主内容区域顶部巨大空白 (默认 6rem 留白) 并保留侧边栏展开按钮 */
 header[data-testid="stHeader"],
-[data-testid="stHeader"],
-header {
-    display: none !important;
-    visibility: hidden !important;
+[data-testid="stHeader"] {
+    background: transparent !important;
     height: 0 !important;
     min-height: 0 !important;
     padding: 0 !important;
     margin: 0 !important;
+    border: none !important;
 }
+/* 隐藏 Streamlit 自带的部署与三点菜单，消除顶部干扰 */
+[data-testid="stAppDeployButton"],
+[data-testid="stMainMenuButton"] {
+    display: none !important;
+}
+/* 侧边栏折叠后页面左上角的展开浮动按钮 */
+[data-testid="stExpandSidebarButton"],
+[data-testid="stSidebarCollapsedControl"] {
+    display: flex !important;
+    visibility: visible !important;
+    position: fixed !important;
+    top: 0.6rem !important;
+    left: 0.6rem !important;
+    z-index: 999999 !important;
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+    padding: 2px !important;
+    transition: all 0.15s ease !important;
+}
+[data-testid="stExpandSidebarButton"]:hover,
+[data-testid="stSidebarCollapsedControl"]:hover {
+    background: #f1f5f9 !important;
+    border-color: #94a3b8 !important;
+}
+[data-testid="stExpandSidebarButton"] button,
+[data-testid="stSidebarCollapsedControl"] button {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: #1e293b !important;
+    padding: 4px 6px !important;
+}
+
 .block-container,
 div[data-testid="stMainBlockContainer"],
 div[data-testid="stAppViewBlockContainer"],
@@ -40,16 +74,36 @@ section[data-testid="stMain"] {
     margin-top: 0 !important;
 }
 
-/* 2. 彻底消除侧边栏顶部空白与页眉占位 */
-[data-testid="stSidebarHeader"],
-.stSidebarHeader,
-[data-testid="stSidebarCollapseButton"] {
-    display: none !important;
-    height: 0 !important;
-    min-height: 0 !important;
-    padding: 0 !important;
-    margin: 0 !important;
+/* 2. 侧边栏整体与折叠收起按钮 (紧凑微顶栏，允许一键隐藏与收起) */
+[data-testid="stSidebarHeader"] {
+    display: flex !important;
+    visibility: visible !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+    height: 2rem !important;
+    min-height: 2rem !important;
+    padding: 0.2rem 0.6rem 0 0.6rem !important;
+    background: transparent !important;
 }
+[data-testid="stSidebarCollapseButton"] {
+    display: inline-flex !important;
+    visibility: visible !important;
+}
+[data-testid="stSidebarCollapseButton"] button {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 6px !important;
+    padding: 4px !important;
+    cursor: pointer !important;
+    color: #64748b !important;
+    transition: all 0.15s ease !important;
+}
+[data-testid="stSidebarCollapseButton"] button:hover {
+    background: #e2e8f0 !important;
+    color: #0f172a !important;
+}
+
 [data-testid="stSidebar"] {
     background-color: #f8fafc !important;
     border-right: 1px solid #e2e8f0 !important;
@@ -115,25 +169,104 @@ section[data-testid="stMain"] {
     gap: 0.35rem;
 }
 
-/* 5. Radio 单选组：舒适行距与悬浮高亮 */
+/* 5. 现代化无圆点色块卡片 (工作台导航 + 技能工具直选) */
+[data-testid="stSidebar"] [data-testid="stRadioOption"] > div:first-child,
+[data-testid="stSidebar"] div[role="radiogroup"] [data-baseweb="radio"] > div:first-child,
+[data-testid="stSidebar"] div[role="radiogroup"] input[type="radio"] {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    opacity: 0 !important;
+}
 [data-testid="stSidebar"] div[role="radiogroup"] {
-    gap: 0.22rem !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.32rem !important;
+    width: 100% !important;
 }
 [data-testid="stSidebar"] div[role="radiogroup"] label {
-    padding: 0.28rem 0.5rem !important;
+    display: flex !important;
+    align-items: center !important;
+    width: 100% !important;
+    padding: 0.44rem 0.68rem !important;
     margin: 0 !important;
-    border-radius: 6px !important;
-    transition: all 0.15s ease !important;
-    background: transparent;
+    border-radius: 8px !important;
+    border: 1px solid #e2e8f0 !important;
+    background: #ffffff !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease-in-out !important;
+    box-sizing: border-box !important;
 }
 [data-testid="stSidebar"] div[role="radiogroup"] label:hover {
-    background-color: #e2e8f0 !important;
+    background-color: #f1f5f9 !important;
+    border-color: #cbd5e1 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04) !important;
+}
+/* 浅蓝高光现代色块卡片激活态 (Checked State) */
+[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) {
+    background: #eff6ff !important; /* 浅蓝底色 */
+    border: 1.5px solid #3b82f6 !important;
+    border-left: 4.5px solid #1d4ed8 !important; /* 经典深蓝侧标 */
+    box-shadow: 0 2px 5px rgba(37, 99, 235, 0.10) !important;
 }
 [data-testid="stSidebar"] div[role="radiogroup"] label p {
-    font-size: 0.83rem !important;
+    font-size: 0.81rem !important;
     font-weight: 500 !important;
-    color: #1e293b !important;
-    line-height: 1.3 !important;
+    color: #334155 !important;
+    margin: 0 !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    line-height: 1.35 !important;
+    transition: color 0.15s ease !important;
+}
+[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) p {
+    color: #1d4ed8 !important; /* 激活文字深蓝 */
+    font-weight: 700 !important;
+}
+
+/* 5.1 投研阶段横向微胶囊卡片栏 (st.pills) */
+[data-testid="stSidebar"] [data-testid="stButtonGroup"] {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 4px !important;
+    width: 100% !important;
+    margin-bottom: 6px !important;
+}
+[data-testid="stSidebar"] [data-testid="stButtonGroup"] button {
+    flex: 1 1 auto !important;
+    min-height: 1.85rem !important;
+    height: 1.85rem !important;
+    padding: 0 0.45rem !important;
+    font-size: 0.72rem !important;
+    font-weight: 500 !important;
+    border-radius: 9999px !important;
+    border: 1px solid #cbd5e1 !important;
+    background: #ffffff !important;
+    color: #475569 !important;
+    line-height: 1.2 !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02) !important;
+    transition: all 0.15s ease !important;
+}
+[data-testid="stSidebar"] [data-testid="stButtonGroup"] button:hover {
+    background: #f1f5f9 !important;
+    border-color: #94a3b8 !important;
+    color: #0f172a !important;
+}
+[data-testid="stSidebar"] [data-testid="stButtonGroup"] button[aria-pressed="true"],
+[data-testid="stSidebar"] [data-testid="stButtonGroup"] button[aria-selected="true"],
+[data-testid="stSidebar"] [data-testid="stButtonGroup"] button[data-active="true"] {
+    background: #1d4ed8 !important;
+    border-color: #1d4ed8 !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    box-shadow: 0 2px 4px rgba(29, 78, 216, 0.25) !important;
+}
+[data-testid="stSidebar"] [data-testid="stButtonGroup"] button[aria-pressed="true"] *,
+[data-testid="stSidebar"] [data-testid="stButtonGroup"] button[aria-selected="true"] *,
+[data-testid="stSidebar"] [data-testid="stButtonGroup"] button[data-active="true"] * {
+    color: #ffffff !important;
 }
 
 /* 6. 表单输入与下拉框微调 (第三层级：小巧精致) */
