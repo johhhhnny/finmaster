@@ -9,6 +9,7 @@ import time
 from dataclasses import dataclass
 import streamlit as st
 
+from version import __version__
 from engine.config import get_current_config, get_search_config, get_plugin_keys
 from engine.skill_manager import skill_manager
 from engine.llm import GeminiClient
@@ -31,11 +32,11 @@ def render_sidebar() -> SidebarState:
     """渲染侧边栏导航与状态快照，返回当前选中的状态及初始化的客户端与执行引擎"""
     with st.sidebar:
         # 顶部品牌信息
-        st.markdown("""
+        st.markdown(f"""
         <div class="sidebar-header-box">
             <div class="sidebar-main-title">
                 <span>🦅</span> FinMaster
-                <span style="font-size: 0.65rem; background: #e0f2fe; color: #0284c7; padding: 2px 6px; border-radius: 4px; font-weight: 600; margin-left: auto;">v1.2</span>
+                <span style="font-size: 0.65rem; background: #e0f2fe; color: #0284c7; padding: 2px 6px; border-radius: 4px; font-weight: 600; margin-left: auto;">v{__version__}</span>
             </div>
             <div class="sidebar-sub-caption">价值投资大师工作站 · 多引擎投研操作系统</div>
         </div>
