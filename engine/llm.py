@@ -149,7 +149,7 @@ class GeminiClient:
         if enable_search:
             payload["tools"] = [{"google_search": {}}]
 
-        headers = {"Content-Type": "application/json"}
+        headers = {"Content-Type": "application/json", "Connection": "keep-alive"}
         
         max_retries = 4
         backoff_delays = [4.0, 8.0, 15.0, 25.0]
@@ -158,7 +158,7 @@ class GeminiClient:
 
         for attempt in range(max_retries):
             try:
-                response = requests.post(url, json=payload, headers=headers, stream=True, timeout=120)
+                response = requests.post(url, json=payload, headers=headers, stream=True, timeout=(15, 90))
 
                 # 命中 429 频次限制或临时网络/代理通道中断 (500, 502 Bad Gateway, 503, 504)
                 if response.status_code in (429, 500, 502, 503, 504):
@@ -223,6 +223,7 @@ class GeminiClient:
         response.encoding = "utf-8"
 
         # 解析 SSE 流 (按原始字节读取，显式进行 UTF-8 解码)
+        yielded_any = False
         try:
             for raw_line in response.iter_lines(decode_unicode=False):
                 if not raw_line:
@@ -245,16 +246,76 @@ class GeminiClient:
                             for part in parts:
                                 text_chunk = part.get("text", "")
                                 if text_chunk:
+                                    yielded_any = True
                                     yield text_chunk
                     except Exception:
                         continue
         except Exception as e:
-            logger.exception("解析 Gemini 流式响应发生异常")
-            yield f"\n\n❌ **流式读取中断异常**: {str(e)}"
+            logger.warning(f"解析 Gemini 流式响应发生异常: {e}")
+            if not yielded_any:
+                # 尚未输出任何文本即遭遇流式中断，自动转入原子同步端点无缝救回！
+                logger.info("流式中断前未输出有效内容，自动启动原子同步端点救回...")
+                fallback_text = self.generate_content_sync(prompt, enable_search=enable_search)
+                if fallback_text:
+                    yield fallback_text
+                    return
+            yield f"\n\n⚠️ **流式传输偶发中断 (网络代理抖动)**: `{str(e)}`\n\n💡 *提示：在长文本深度推演中，本地网络代理可能发生空闲超时。若未完成，可再次点击重新生成，或使用「四大师团队」模式（内置原子级防断连保护）。*"
 
     def generate_content_sync(self, prompt: str, enable_search: bool = True) -> str:
-        """同步一次性生成完整文本"""
-        chunks = []
-        for chunk in self.generate_content_stream(prompt, enable_search=enable_search):
-            chunks.append(chunk)
-        return "".join(chunks)
+        """
+        同步一次性生成完整文本（专为四大师并行流水线与后台任务设计）。
+        直接调用原子级 :generateContent 端点，彻底免疫 SSE 流式长连接在网络代理环境下的空闲超时问题。
+        """
+        if not self.is_configured():
+            return "⚠️ 未配置 GEMINI_API_KEY"
+
+        import requests
+        import time
+
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent?key={self.api_key}"
+        payload: Dict[str, Any] = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {
+                "temperature": self.temperature,
+                "maxOutputTokens": 8192
+            }
+        }
+        if enable_search:
+            payload["tools"] = [{"google_search": {}}]
+
+        headers = {"Content-Type": "application/json", "Connection": "keep-alive"}
+        max_retries = 3
+        backoff_delays = [3.0, 6.0, 12.0]
+
+        for attempt in range(max_retries):
+            try:
+                resp = requests.post(url, json=payload, headers=headers, timeout=(15, 90))
+                if resp.status_code == 200:
+                    data = resp.json() or {}
+                    cands = data.get("candidates", [])
+                    if cands:
+                        content = cands[0].get("content", {})
+                        parts = content.get("parts", [])
+                        text_list = [p.get("text", "") for p in parts if p.get("text")]
+                        return "".join(text_list)
+                    return ""
+                elif resp.status_code == 429:
+                    if "tools" in payload:
+                        payload.pop("tools", None)
+                        time.sleep(1.0)
+                        continue
+                    if attempt < max_retries - 1:
+                        time.sleep(backoff_delays[attempt])
+                        continue
+                    return f"❌ Gemini API 频次达到上限 (HTTP 429)，请稍等片刻后重试。"
+                else:
+                    if attempt < max_retries - 1:
+                        time.sleep(backoff_delays[attempt])
+                        continue
+                    return f"❌ Gemini API 响应异常 (HTTP {resp.status_code}): {resp.text[:300]}"
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    time.sleep(backoff_delays[attempt])
+                    continue
+                return f"❌ 网络连接异常: {str(e)}"
+        return ""
