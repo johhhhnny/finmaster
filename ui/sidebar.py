@@ -75,7 +75,8 @@ def render_sidebar() -> SidebarState:
             index=current_top_index,
             key="sidebar_top_nav_radio",
             on_change=_on_top_nav_change,
-            label_visibility="collapsed"
+            label_visibility="collapsed",
+            width="stretch"
         )
         if selected_top and selected_top != current_app_mode and current_app_mode != "⚙️ 系统与数据源设置":
             st.session_state["sidebar_app_mode"] = selected_top
@@ -134,7 +135,8 @@ def render_sidebar() -> SidebarState:
                 format_func=format_skill_label,
                 index=current_skill_index,
                 key=f"sidebar_skills_radio_{selected_stage}",
-                label_visibility="collapsed"
+                label_visibility="collapsed",
+                width="stretch"
             )
             st.session_state["selected_skill_id"] = selected_skill_id
 

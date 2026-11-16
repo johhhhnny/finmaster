@@ -207,11 +207,13 @@ section[data-testid="stMain"] {
     opacity: 0 !important;
 }
 /* 确保 Radio 组件整棵 DOM 树全部 100% 满宽自适应 */
+[data-testid="stSidebar"] div:has(> [data-testid="stRadio"]),
 [data-testid="stSidebar"] [data-testid="stRadio"],
 [data-testid="stSidebar"] [data-testid="stRadio"] > div,
 [data-testid="stSidebar"] [data-testid="stRadioGroup"],
 [data-testid="stSidebar"] div.react-aria-RadioGroup {
     width: 100% !important;
+    min-width: 100% !important;
     max-width: 100% !important;
     display: flex !important;
     flex-direction: column !important;
@@ -225,6 +227,7 @@ section[data-testid="stMain"] {
 [data-testid="stSidebar"] [data-testid="stRadioGroup"] > div,
 [data-testid="stSidebar"] div.react-aria-RadioField {
     width: 100% !important;
+    min-width: 100% !important;
     max-width: 100% !important;
     display: flex !important;
     flex-direction: column !important;
@@ -241,6 +244,7 @@ section[data-testid="stMain"] {
     align-items: center !important;
     justify-content: flex-start !important;
     width: 100% !important;
+    min-width: 100% !important;
     max-width: 100% !important;
     align-self: stretch !important;
     flex: 1 1 100% !important;
