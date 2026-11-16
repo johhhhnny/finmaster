@@ -267,9 +267,17 @@ class YFinanceSource:
             f"- **当前实时/收盘价**：`{self._fmt_currency(price, curr)}`" if price else "- **当前实时/收盘价**：暂无行情",
             f"- **52 周价格区间**：`{self._fmt_currency(w_low, curr)} ~ {self._fmt_currency(w_high, curr)}`" if (w_low and w_high) else "",
             f"- **最新已发行总股本**：`{self._fmt_large_num(shares)} 股`" if shares else "",
-            f"- **真实总市值 (Market Cap)**：`{self._fmt_currency_large(mcap, curr)}`" if mcap else "",
-            f"- **核心估值倍数**：动态PE (Trailing): `{pe_t:.1f}x` | 预测PE (Forward): `{pe_f:.1f}x` | 市净率 PB: `{pb:.2f}x` | 市销率 PS: `{ps:.2f}x`" if (pe_t or pe_f) else ""
-        ]
+        val_parts = []
+        if pe_t is not None:
+            val_parts.append(f"动态PE (Trailing): `{pe_t:.1f}x`")
+        if pe_f is not None:
+            val_parts.append(f"预测PE (Forward): `{pe_f:.1f}x`")
+        if pb is not None:
+            val_parts.append(f"市净率 PB: `{pb:.2f}x`")
+        if ps is not None:
+            val_parts.append(f"市销率 PS: `{ps:.2f}x`")
+        if val_parts:
+            lines.append(f"- **核心估值倍数**：{' | '.join(val_parts)}")
         # 去除空行
         lines = [line for line in lines if line]
 

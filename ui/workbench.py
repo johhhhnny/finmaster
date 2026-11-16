@@ -440,18 +440,25 @@ def render_workbench(state: SidebarState):
                 report_placeholder = st.empty()
                 full_text = ""
 
-                for chunk in engine.execute_skill_stream(
-                    skill_id=selected_skill_id,
-                    user_params=user_inputs,
-                    on_status=status_callback,
-                    enable_search=(chosen_search_mode != "off"),
-                    search_mode=chosen_search_mode
-                ):
-                    full_text += chunk
-                    report_placeholder.markdown(full_text + " ▌")
+                try:
+                    for chunk in engine.execute_skill_stream(
+                        skill_id=selected_skill_id,
+                        user_params=user_inputs,
+                        on_status=status_callback,
+                        enable_search=(chosen_search_mode != "off"),
+                        search_mode=chosen_search_mode
+                    ):
+                        full_text += chunk
+                        report_placeholder.markdown(full_text + " ▌")
 
-                report_placeholder.markdown(full_text)
-                status_box.update(label=f"✅ {skill_title} 研究完成！已自动归档至 reports/ 目录", state="complete", expanded=False)
+                    report_placeholder.markdown(full_text)
+                    if full_text and "❌" not in full_text[:50] and "流式传输偶发中断" not in full_text:
+                        status_box.update(label=f"✅ {skill_title} 研究完成！已自动归档至 reports/ 目录", state="complete", expanded=False)
+                    else:
+                        status_box.update(label=f"⚠️ {skill_title} 遇到网络中断", state="error", expanded=True)
+                except Exception as e:
+                    status_box.update(label=f"❌ 执行异常: {str(e)[:50]}", state="error", expanded=True)
+                    st.error(f"研报生成中途发生异常: {e}")
 
                 st.download_button(
                     f"📥 下载「{skill_title}」完整研报 (.md)",
