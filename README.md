@@ -184,9 +184,9 @@ python start.py
 
 ---
 
-### 方式二：Docker 容器化部署
+### 方式二：Docker 容器化部署（试验性 · 未经完整测试）
 
-FinMaster 包含完整的轻量化 Docker 支持，支持一键挂载环境文件启动：
+> ⚠️ **提示**：本项目目前主要在本地原生环境（Mac / Linux / Windows + Python 3.9+）进行了深度测试与验证。代码库内已提供标准 `Dockerfile`，但容器化运行流程尚未经过全链路完整压力测试，当前作为试验性特性提供，欢迎社区开发者测试并提交 PR 改进。
 
 ```bash
 # 构建镜像
@@ -199,7 +199,7 @@ docker run -d \
   --name finmaster-workbench \
   finmaster
 ```
-访问 `http://localhost:8501` 即可开始使用。
+访问 `http://localhost:8501` 即可体验。
 
 ---
 
