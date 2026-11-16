@@ -206,21 +206,46 @@ section[data-testid="stMain"] {
     visibility: hidden !important;
     opacity: 0 !important;
 }
-[data-testid="stSidebar"] div.react-aria-RadioField,
-[data-testid="stSidebar"] [data-testid="stRadio"] div[data-selected],
-[data-testid="stSidebar"] [data-testid="stRadioGroup"] {
+/* 确保 Radio 组件整棵 DOM 树全部 100% 满宽自适应 */
+[data-testid="stSidebar"] [data-testid="stRadio"],
+[data-testid="stSidebar"] [data-testid="stRadio"] > div,
+[data-testid="stSidebar"] [data-testid="stRadioGroup"],
+[data-testid="stSidebar"] div.react-aria-RadioGroup {
     width: 100% !important;
-}
-[data-testid="stSidebar"] [data-testid="stRadioGroup"] {
+    max-width: 100% !important;
     display: flex !important;
     flex-direction: column !important;
-    gap: 0.28rem !important;
+    flex-wrap: nowrap !important; /* 严禁折行导致收缩 */
+    align-items: stretch !important; /* 强制所有选项横向 100% 拉伸 */
+    gap: 0.35rem !important;
+    box-sizing: border-box !important;
 }
-[data-testid="stSidebar"] label[data-testid="stRadioOption"] {
+
+/* 每个单选卡片的外部容器 */
+[data-testid="stSidebar"] [data-testid="stRadioGroup"] > div,
+[data-testid="stSidebar"] div.react-aria-RadioField {
+    width: 100% !important;
+    max-width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-self: stretch !important; /* 自身强制满宽拉伸 */
+    flex: 1 1 100% !important;
+    box-sizing: border-box !important;
+}
+
+/* 每个单选卡片的主体 Label */
+[data-testid="stSidebar"] label[data-testid="stRadioOption"],
+[data-testid="stSidebar"] label.react-aria-RadioButton,
+[data-testid="stSidebar"] [data-testid="stRadioGroup"] label {
     display: flex !important;
     align-items: center !important;
+    justify-content: flex-start !important;
     width: 100% !important;
-    padding: 0.46rem 0.68rem !important;
+    max-width: 100% !important;
+    align-self: stretch !important;
+    flex: 1 1 100% !important;
+    box-sizing: border-box !important;
+    padding: 0.52rem 0.8rem !important;
     margin: 0 !important;
     border-radius: 8px !important;
     border: 1px solid #e2e8f0 !important;
@@ -228,24 +253,39 @@ section[data-testid="stMain"] {
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02) !important;
     cursor: pointer !important;
     transition: all 0.15s ease-in-out !important;
-    box-sizing: border-box !important;
 }
-[data-testid="stSidebar"] label[data-testid="stRadioOption"]:hover {
+[data-testid="stSidebar"] label[data-testid="stRadioOption"]:hover,
+[data-testid="stSidebar"] [data-testid="stRadioGroup"] label:hover {
     background-color: #f1f5f9 !important;
     border-color: #cbd5e1 !important;
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04) !important;
 }
+
+/* 单选卡片内的文本容器 */
+[data-testid="stSidebar"] label[data-testid="stRadioOption"] > div,
+[data-testid="stSidebar"] [data-testid="stRadioGroup"] label > div {
+    display: flex !important;
+    align-items: center !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: 1 1 auto !important;
+    box-sizing: border-box !important;
+}
+
 /* 浅蓝高光现代色块卡片激活态 (匹配 react-aria data-selected 及 :has(input:checked)) */
 [data-testid="stSidebar"] label[data-testid="stRadioOption"][data-selected],
-[data-testid="stSidebar"] label[data-testid="stRadioOption"]:has(input:checked) {
+[data-testid="stSidebar"] label[data-testid="stRadioOption"]:has(input:checked),
+[data-testid="stSidebar"] [data-testid="stRadioGroup"] label[data-selected],
+[data-testid="stSidebar"] [data-testid="stRadioGroup"] label:has(input:checked) {
     background: #eff6ff !important; /* 浅蓝底色 */
     border: 1.5px solid #3b82f6 !important;
     border-left: 4.5px solid #1d4ed8 !important; /* 经典深蓝侧标 */
     box-shadow: 0 2px 5px rgba(37, 99, 235, 0.10) !important;
 }
-[data-testid="stSidebar"] label[data-testid="stRadioOption"] p {
-    font-size: 0.81rem !important;
+[data-testid="stSidebar"] label[data-testid="stRadioOption"] p,
+[data-testid="stSidebar"] [data-testid="stRadioGroup"] label p {
+    font-size: 0.82rem !important;
     font-weight: 500 !important;
     color: #334155 !important;
     margin: 0 !important;
@@ -255,10 +295,13 @@ section[data-testid="stMain"] {
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
+    width: 100% !important;
     transition: color 0.15s ease !important;
 }
 [data-testid="stSidebar"] label[data-testid="stRadioOption"][data-selected] p,
-[data-testid="stSidebar"] label[data-testid="stRadioOption"]:has(input:checked) p {
+[data-testid="stSidebar"] label[data-testid="stRadioOption"]:has(input:checked) p,
+[data-testid="stSidebar"] [data-testid="stRadioGroup"] label[data-selected] p,
+[data-testid="stSidebar"] [data-testid="stRadioGroup"] label:has(input:checked) p {
     color: #1d4ed8 !important; /* 激活文字深蓝 */
     font-weight: 700 !important;
 }

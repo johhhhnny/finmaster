@@ -4,6 +4,7 @@ FinMaster UI 侧边栏模块
 全套系统设置与多数据源配置已迁移至独立的「⚙️ 系统与数据源设置」全屏中台。
 """
 import os
+import re
 import time
 from dataclasses import dataclass
 import streamlit as st
@@ -116,19 +117,12 @@ def render_sidebar() -> SidebarState:
             skill_ids = [s["id"] for s in skills_in_cat]
             skill_map = {s["id"]: s for s in skills_in_cat}
 
-            MODE_BADGES = {
-                "multi_agent": "4-Agent",
-                "funnel": "漏斗",
-                "single_agent": "单Agent",
-            }
-
             def format_skill_label(sid: str) -> str:
                 s = skill_map.get(sid)
                 if not s:
                     return sid
-                badge = MODE_BADGES.get(s.get("mode", ""), "")
-                badge_str = f" ({badge})" if badge else ""
-                return f"{s['icon']} {s['title']}{badge_str}"
+                clean_title = re.sub(r'[\(（].*?[\)）]', '', s['title']).strip()
+                return f"{s['icon']} {clean_title}"
 
             current_skill_index = 0
             if selected_skill_id in skill_ids:
