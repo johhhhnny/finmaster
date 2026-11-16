@@ -170,25 +170,37 @@ section[data-testid="stMain"] {
 }
 
 /* 5. 现代化无圆点色块卡片 (工作台导航 + 技能工具直选) */
-[data-testid="stSidebar"] [data-testid="stRadioOption"] > div:first-child,
-[data-testid="stSidebar"] div[role="radiogroup"] [data-baseweb="radio"] > div:first-child,
-[data-testid="stSidebar"] div[role="radiogroup"] input[type="radio"] {
+/* 彻底隐藏 Streamlit 1.40 react-aria 默认单选圆点及 input 控件 */
+[data-testid="stSidebar"] [data-testid="stRadioOption"] input,
+[data-testid="stSidebar"] [data-testid="stRadioOption"] span:has(input),
+[data-testid="stSidebar"] [data-testid="stRadioOption"] > div > div:first-child,
+[data-testid="stSidebar"] [data-testid="stRadioOption"] div[class*="ex50key4"],
+[data-testid="stSidebar"] [data-testid="stRadioOption"] div[class*="ex50key5"],
+[data-testid="stSidebar"] [data-testid="stRadioOption"] svg {
     display: none !important;
     width: 0 !important;
     height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    visibility: hidden !important;
     opacity: 0 !important;
 }
-[data-testid="stSidebar"] div[role="radiogroup"] {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 0.32rem !important;
+[data-testid="stSidebar"] div.react-aria-RadioField,
+[data-testid="stSidebar"] [data-testid="stRadio"] div[data-selected],
+[data-testid="stSidebar"] [data-testid="stRadioGroup"] {
     width: 100% !important;
 }
-[data-testid="stSidebar"] div[role="radiogroup"] label {
+[data-testid="stSidebar"] [data-testid="stRadioGroup"] {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.28rem !important;
+}
+[data-testid="stSidebar"] label[data-testid="stRadioOption"] {
     display: flex !important;
     align-items: center !important;
     width: 100% !important;
-    padding: 0.44rem 0.68rem !important;
+    padding: 0.46rem 0.68rem !important;
     margin: 0 !important;
     border-radius: 8px !important;
     border: 1px solid #e2e8f0 !important;
@@ -198,20 +210,21 @@ section[data-testid="stMain"] {
     transition: all 0.15s ease-in-out !important;
     box-sizing: border-box !important;
 }
-[data-testid="stSidebar"] div[role="radiogroup"] label:hover {
+[data-testid="stSidebar"] label[data-testid="stRadioOption"]:hover {
     background-color: #f1f5f9 !important;
     border-color: #cbd5e1 !important;
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04) !important;
 }
-/* 浅蓝高光现代色块卡片激活态 (Checked State) */
-[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) {
+/* 浅蓝高光现代色块卡片激活态 (匹配 react-aria data-selected 及 :has(input:checked)) */
+[data-testid="stSidebar"] label[data-testid="stRadioOption"][data-selected],
+[data-testid="stSidebar"] label[data-testid="stRadioOption"]:has(input:checked) {
     background: #eff6ff !important; /* 浅蓝底色 */
     border: 1.5px solid #3b82f6 !important;
     border-left: 4.5px solid #1d4ed8 !important; /* 经典深蓝侧标 */
     box-shadow: 0 2px 5px rgba(37, 99, 235, 0.10) !important;
 }
-[data-testid="stSidebar"] div[role="radiogroup"] label p {
+[data-testid="stSidebar"] label[data-testid="stRadioOption"] p {
     font-size: 0.81rem !important;
     font-weight: 500 !important;
     color: #334155 !important;
@@ -219,53 +232,68 @@ section[data-testid="stMain"] {
     margin-top: 0 !important;
     margin-bottom: 0 !important;
     line-height: 1.35 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
     transition: color 0.15s ease !important;
 }
-[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) p {
+[data-testid="stSidebar"] label[data-testid="stRadioOption"][data-selected] p,
+[data-testid="stSidebar"] label[data-testid="stRadioOption"]:has(input:checked) p {
     color: #1d4ed8 !important; /* 激活文字深蓝 */
     font-weight: 700 !important;
 }
 
 /* 5.1 投研阶段横向微胶囊卡片栏 (st.pills) */
 [data-testid="stSidebar"] [data-testid="stButtonGroup"] {
+    width: 100% !important;
+    margin-bottom: 4px !important;
+}
+/* 强制内部胶囊容器采用 Flex 自动折行，紧密网格排列 */
+[data-testid="stSidebar"] [data-testid="stButtonGroup"] > div,
+[data-testid="stSidebar"] [data-testid="stButtonGroup"] > div:last-child {
     display: flex !important;
     flex-wrap: wrap !important;
     gap: 4px !important;
     width: 100% !important;
-    margin-bottom: 6px !important;
+    justify-content: flex-start !important;
 }
+[data-testid="stSidebar"] button[data-variant="pills"],
 [data-testid="stSidebar"] [data-testid="stButtonGroup"] button {
-    flex: 1 1 auto !important;
-    min-height: 1.85rem !important;
-    height: 1.85rem !important;
-    padding: 0 0.45rem !important;
-    font-size: 0.72rem !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 1.75rem !important;
+    height: 1.75rem !important;
+    padding: 0 0.52rem !important;
+    font-size: 0.74rem !important;
     font-weight: 500 !important;
     border-radius: 9999px !important;
     border: 1px solid #cbd5e1 !important;
     background: #ffffff !important;
     color: #475569 !important;
-    line-height: 1.2 !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
     box-shadow: 0 1px 2px rgba(0,0,0,0.02) !important;
     transition: all 0.15s ease !important;
+    flex: 0 0 auto !important; /* 自适应紧凑胶囊宽度，绝不独占单行 */
 }
+[data-testid="stSidebar"] button[data-variant="pills"]:hover,
 [data-testid="stSidebar"] [data-testid="stButtonGroup"] button:hover {
     background: #f1f5f9 !important;
     border-color: #94a3b8 !important;
     color: #0f172a !important;
 }
-[data-testid="stSidebar"] [data-testid="stButtonGroup"] button[aria-pressed="true"],
-[data-testid="stSidebar"] [data-testid="stButtonGroup"] button[aria-selected="true"],
-[data-testid="stSidebar"] [data-testid="stButtonGroup"] button[data-active="true"] {
+/* 激活态：深蓝高光微胶囊 (精确匹配 react-aria data-selected 属性) */
+[data-testid="stSidebar"] button[data-variant="pills"][data-selected],
+[data-testid="stSidebar"] [data-testid="stButtonGroup"] button[data-selected] {
     background: #1d4ed8 !important;
     border-color: #1d4ed8 !important;
     color: #ffffff !important;
     font-weight: 600 !important;
     box-shadow: 0 2px 4px rgba(29, 78, 216, 0.25) !important;
 }
-[data-testid="stSidebar"] [data-testid="stButtonGroup"] button[aria-pressed="true"] *,
-[data-testid="stSidebar"] [data-testid="stButtonGroup"] button[aria-selected="true"] *,
-[data-testid="stSidebar"] [data-testid="stButtonGroup"] button[data-active="true"] * {
+[data-testid="stSidebar"] button[data-variant="pills"][data-selected] *,
+[data-testid="stSidebar"] [data-testid="stButtonGroup"] button[data-selected] * {
     color: #ffffff !important;
 }
 

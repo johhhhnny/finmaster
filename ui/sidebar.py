@@ -88,11 +88,11 @@ def render_sidebar() -> SidebarState:
             st.markdown('<div class="sidebar-section-title" style="margin-top: 14px;">📚 投资技能精选 (21 Skills)</div>', unsafe_allow_html=True)
 
             STAGE_PILL_NAMES = {
-                "1. 🔍 初筛与赛道漏斗": "🔍 漏斗初筛",
-                "2. 🏢 深度个股研究": "🏢 深度个股",
-                "3. ⚖️ 估值与投资准则": "⚖️ 估值准则",
-                "4. ⏱️ 投后跟踪与风控": "⏱️ 投后跟踪",
-                "5. 📢 成果转化与发布": "📢 成果发布",
+                "1. 🔍 初筛与赛道漏斗": "🔍 初筛",
+                "2. 🏢 深度个股研究": "🏢 个股",
+                "3. ⚖️ 估值与投资准则": "⚖️ 估值",
+                "4. ⏱️ 投后跟踪与风控": "⏱️ 跟踪",
+                "5. 📢 成果转化与发布": "📢 发布",
             }
             categories = skill_manager.list_categories()
             default_cat = st.session_state.get("sidebar_selected_stage", "2. 🏢 深度个股研究")
@@ -127,7 +127,7 @@ def render_sidebar() -> SidebarState:
                 if not s:
                     return sid
                 badge = MODE_BADGES.get(s.get("mode", ""), "")
-                badge_str = f" · {badge}" if badge else ""
+                badge_str = f" ({badge})" if badge else ""
                 return f"{s['icon']} {s['title']}{badge_str}"
 
             current_skill_index = 0
