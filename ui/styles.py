@@ -8,49 +8,69 @@ def inject_custom_css():
     """注入 FinMaster 专业金融终端定制样式"""
     st.markdown("""
 <style>
-/* 1. 彻底消除主内容区域顶部巨大空白 (默认 6rem 留白) 并保留侧边栏展开按钮 */
+/* 1. 彻底消除主内容区域顶部空白 (默认 6rem 留白) 并保留侧边栏展开按钮 */
 header[data-testid="stHeader"],
-[data-testid="stHeader"] {
+[data-testid="stHeader"],
+.stAppHeader {
     background: transparent !important;
     height: 0 !important;
     min-height: 0 !important;
     padding: 0 !important;
     margin: 0 !important;
     border: none !important;
+    pointer-events: none !important; /* 穿透点击，避免遮挡页面内容 */
+    z-index: 999999 !important;
 }
+[data-testid="stToolbar"],
+.stAppToolbar {
+    background: transparent !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    pointer-events: none !important;
+}
+
 /* 隐藏 Streamlit 自带的部署与三点菜单，消除顶部干扰 */
 [data-testid="stAppDeployButton"],
 [data-testid="stMainMenuButton"] {
     display: none !important;
 }
-/* 侧边栏折叠后页面左上角的展开浮动按钮 */
+
+/* 侧边栏折叠后页面左上角的展开浮动按钮 (>>) */
 [data-testid="stExpandSidebarButton"],
-[data-testid="stSidebarCollapsedControl"] {
-    display: flex !important;
+[data-testid="stSidebarCollapsedControl"],
+button[data-testid="stExpandSidebarButton"] {
+    display: inline-flex !important;
     visibility: visible !important;
     position: fixed !important;
-    top: 0.6rem !important;
-    left: 0.6rem !important;
-    z-index: 999999 !important;
+    top: 0.65rem !important;
+    left: 0.65rem !important;
+    z-index: 9999999 !important;
+    pointer-events: auto !important; /* 关键：开启按钮点击响应 */
     background: #ffffff !important;
     border: 1px solid #cbd5e1 !important;
     border-radius: 8px !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
-    padding: 2px !important;
-    transition: all 0.15s ease !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12) !important;
+    cursor: pointer !important;
+    padding: 0.35rem 0.55rem !important;
+    color: #1e293b !important;
+    transition: all 0.2s ease !important;
+    opacity: 0.95 !important;
 }
 [data-testid="stExpandSidebarButton"]:hover,
-[data-testid="stSidebarCollapsedControl"]:hover {
+[data-testid="stSidebarCollapsedControl"]:hover,
+button[data-testid="stExpandSidebarButton"]:hover {
+    opacity: 1 !important;
     background: #f1f5f9 !important;
-    border-color: #94a3b8 !important;
+    border-color: #3b82f6 !important;
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2) !important;
 }
-[data-testid="stExpandSidebarButton"] button,
-[data-testid="stSidebarCollapsedControl"] button {
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
+[data-testid="stExpandSidebarButton"] *,
+[data-testid="stSidebarCollapsedControl"] *,
+button[data-testid="stExpandSidebarButton"] * {
     color: #1e293b !important;
-    padding: 4px 6px !important;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
 .block-container,
@@ -573,12 +593,11 @@ div[data-testid="stHorizontalBlock"] .stButton button[kind="primary"] *,
 }
 
 
-/* 11. 彻底隐藏 Streamlit 默认顶部杂项 (Deploy 按钮、页眉、汉堡菜单、顶部彩色条) */
-header[data-testid="stHeader"],
-[data-testid="stToolbar"],
+/* 11. 彻底隐藏 Streamlit 默认顶部杂项 (Deploy 按钮、汉堡菜单、顶部彩色条与页脚) */
 [data-testid="stDecoration"],
+[data-testid="stAppDeployButton"],
+[data-testid="stMainMenuButton"],
 .stDeployButton,
-.stAppToolbar,
 #MainMenu,
 footer {
     display: none !important;
