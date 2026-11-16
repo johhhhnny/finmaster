@@ -435,19 +435,28 @@ footer {
 [data-testid="stTabs"] .react-aria-SelectionIndicator,
 [data-testid="stTabs"] [class*="SelectionIndicator"],
 [data-testid="stTabs"] div[data-baseweb="tab-highlight"],
-[data-testid="stTabs"] div[data-baseweb="tab-border"] {
+[data-testid="stTabs"] div[data-baseweb="tab-border"],
+[data-testid="stTabs"] [data-testid="stTab"] [class*="SelectionIndicator"] {
     display: none !important;
     height: 0 !important;
+    width: 0 !important;
     visibility: hidden !important;
     opacity: 0 !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
 }
 [data-testid="stTabs"] [role="tablist"]::after,
-[data-testid="stTabs"] .react-aria-TabList::after {
+[data-testid="stTabs"] .react-aria-TabList::after,
+[data-testid="stTabs"] [data-testid="stTab"]::after,
+[data-testid="stTabs"] [role="tab"]::after {
     display: none !important;
     content: none !important;
+    height: 0 !important;
 }
 
 /* 标签栏滑轨底座：优雅的中性灰浅槽容器 */
+[data-testid="stTabs"] > div,
 [data-testid="stTabs"] [role="tablist"],
 [data-testid="stTabs"] .react-aria-TabList,
 [data-testid="stTabs"] div[data-baseweb="tab-list"] {
@@ -455,20 +464,28 @@ footer {
     border: 1px solid #e2e8f0 !important;
     border-radius: 12px !important;
     padding: 6px !important;
-    gap: 10px !important;
+    gap: 8px !important;
     display: flex !important;
+    flex-direction: row !important;
     width: 100% !important;
+    min-width: 100% !important;
     align-items: stretch !important;
+    box-sizing: border-box !important;
     box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03) !important;
     overflow: visible !important;
 }
 
-/* 单个 Tab 按钮基类：独立等宽卡片 (支持所有 div/button/react-aria 渲染) */
+/* 单个 Tab 按钮基类：独立等宽 25% 实体卡片 (支持所有 div/button/react-aria 渲染) */
 [data-testid="stTabs"] [data-testid="stTab"],
 [data-testid="stTabs"] .react-aria-Tab,
 [data-testid="stTabs"] [role="tab"],
-[data-testid="stTabs"] button[role="tab"] {
-    flex: 1 1 0% !important;
+[data-testid="stTabs"] button[role="tab"],
+[role="tab"] {
+    flex: 1 1 calc(25% - 8px) !important;
+    width: calc(25% - 8px) !important;
+    min-width: calc(25% - 8px) !important;
+    max-width: calc(25% - 8px) !important;
+    box-sizing: border-box !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -476,7 +493,7 @@ footer {
     background-color: #ffffff !important;
     border: 1px solid #e2e8f0 !important;
     border-radius: 8px !important;
-    padding: 8px 12px !important;
+    padding: 8px 10px !important;
     margin: 0 !important;
     min-height: 2.45rem !important;
     height: 2.45rem !important;
@@ -491,7 +508,7 @@ footer {
 [data-testid="stTabs"] [data-testid="stTab"] *,
 [data-testid="stTabs"] .react-aria-Tab *,
 [data-testid="stTabs"] [role="tab"] * {
-    font-size: 0.82rem !important;
+    font-size: 0.81rem !important;
     font-weight: 500 !important;
     color: #475569 !important;
     line-height: 1.2 !important;
@@ -520,8 +537,10 @@ footer {
 [data-testid="stTabs"] [data-testid="stTab"][aria-selected="true"],
 [data-testid="stTabs"] .react-aria-Tab[data-selected],
 [data-testid="stTabs"] [role="tab"][data-selected],
-[data-testid="stTabs"] [role="tab"][aria-selected="true"] {
+[data-testid="stTabs"] [role="tab"][aria-selected="true"],
+[data-testid="stTab"][data-selected] {
     background-color: #eff6ff !important;
+    background: #eff6ff !important;
     border: 1.5px solid #2563eb !important;
     box-shadow: 0 2px 8px rgba(37, 99, 235, 0.18) !important;
     transform: translateY(-1px) !important;
@@ -532,7 +551,7 @@ footer {
 [data-testid="stTabs"] .react-aria-Tab[data-selected] *,
 [data-testid="stTabs"] [role="tab"][data-selected] *,
 [data-testid="stTabs"] [role="tab"][aria-selected="true"] * {
-    font-size: 0.83rem !important;
+    font-size: 0.82rem !important;
     font-weight: 700 !important;
     color: #1d4ed8 !important;
 }
