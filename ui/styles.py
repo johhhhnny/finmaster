@@ -425,23 +425,91 @@ footer {
     height: 0 !important;
 }
 
-/* 12. Tabs 样式精致化 */
-[data-testid="stTabs"] {
-    margin-top: 6px !important;
+/* 12. Tabs 样式高对比度重塑 (Modern Segmented Capsule / Pill Tab Bar) */
+div[data-testid="stTabs"] {
+    margin-top: 10px !important;
 }
-[data-testid="stTabs"] button[role="tab"] {
-    font-size: 0.83rem !important;
-    font-weight: 600 !important;
-    padding: 0.45rem 0.95rem !important;
-    border-radius: 6px 6px 0 0 !important;
-    color: #64748b !important;
-    border: none !important;
+
+/* 彻底隐藏 BaseWeb 默认自带的粗笨红色下滑线与底边框 */
+div[data-testid="stTabs"] div[data-baseweb="tab-highlight"],
+div[data-testid="stTabs"] div[data-baseweb="tab-border"] {
+    display: none !important;
+    height: 0 !important;
+    visibility: hidden !important;
+}
+
+/* Tab 容器栏：现代分段胶囊凹槽容器 (Segmented Capsule Container) */
+div[data-testid="stTabs"] div[role="tablist"],
+div[data-testid="stTabs"] div[data-baseweb="tab-list"] {
+    background-color: #f1f5f9 !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 10px !important;
+    padding: 4px !important;
+    gap: 6px !important;
+    width: fit-content !important;
+    max-width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+}
+
+/* 单个 Tab 按钮基类（未选中状态：清晰深灰，平滑微胶囊） */
+div[data-testid="stTabs"] button[role="tab"],
+div[data-testid="stTabs"] button[data-baseweb="tab"] {
     background: transparent !important;
+    background-color: transparent !important;
+    border: 1px solid transparent !important;
+    border-radius: 8px !important;
+    padding: 6px 14px !important;
+    min-height: 2.15rem !important;
+    height: 2.15rem !important;
+    transition: all 0.15s ease-in-out !important;
+    cursor: pointer !important;
+    margin: 0 !important;
 }
-[data-testid="stTabs"] button[role="tab"][aria-selected="true"] {
+
+/* 未选中 Tab 文字：清晰 Slate 500 */
+div[data-testid="stTabs"] button[role="tab"] *,
+div[data-testid="stTabs"] button[data-baseweb="tab"] * {
+    font-size: 0.81rem !important;
+    font-weight: 500 !important;
+    color: #475569 !important;
+    line-height: 1 !important;
+    transition: color 0.15s ease !important;
+}
+
+/* 未选中 Tab 悬停效果：轻微提亮，明确可点击意图 */
+div[data-testid="stTabs"] button[role="tab"]:hover,
+div[data-testid="stTabs"] button[data-baseweb="tab"]:hover {
+    background-color: #e2e8f0 !important;
+}
+div[data-testid="stTabs"] button[role="tab"]:hover * {
+    color: #0f172a !important;
+}
+
+/* 🌟 激活选中的 Tab：纯白浮雕高亮胶囊卡片，深蓝主题色，柔和阴影，极强对比度！ */
+div[data-testid="stTabs"] button[role="tab"][aria-selected="true"],
+div[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"] {
+    background-color: #ffffff !important;
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 8px !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* 激活选中的 Tab 文字：高辨识度金融科技蓝 + 加粗 */
+div[data-testid="stTabs"] button[role="tab"][aria-selected="true"] *,
+div[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"] * {
     color: #1d4ed8 !important;
-    border-bottom: 2px solid #2563eb !important;
-    background: #f8fafc !important;
+    font-weight: 700 !important;
+    font-size: 0.82rem !important;
+}
+
+/* Tab 内容区域顶部间距微调 */
+div[data-testid="stTabContent"] {
+    margin-top: 10px !important;
+    padding-top: 2px !important;
 }
 
 /* 13. 主工作区卡片容器规范 (Modern Workspace Card Components) */
