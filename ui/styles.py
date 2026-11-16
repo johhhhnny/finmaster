@@ -455,8 +455,7 @@ footer {
     height: 0 !important;
 }
 
-/* 标签栏滑轨底座：优雅的中性灰浅槽容器 */
-[data-testid="stTabs"] > div,
+/* 标签栏滑轨底座：优雅的中性灰浅槽容器 (仅作用于 TabList，绝不污染面板外层) */
 [data-testid="stTabs"] [role="tablist"],
 [data-testid="stTabs"] .react-aria-TabList,
 [data-testid="stTabs"] div[data-baseweb="tab-list"] {
@@ -475,12 +474,27 @@ footer {
     overflow: visible !important;
 }
 
+/* 核心：确保外层 Tab 容器与面板保持纵向列流，让内容面板正常处于下方 */
+[data-testid="stTabs"],
+[data-testid="stTabs"] > div {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+}
+[data-testid="stTabs"] [data-testid="stTabPanel"],
+[data-testid="stTabs"] [role="tabpanel"],
+[data-testid="stTabPanel"] {
+    display: block !important;
+    width: 100% !important;
+    margin-top: 10px !important;
+    overflow: visible !important;
+}
+
 /* 单个 Tab 按钮基类：独立等宽 25% 实体卡片 (支持所有 div/button/react-aria 渲染) */
 [data-testid="stTabs"] [data-testid="stTab"],
 [data-testid="stTabs"] .react-aria-Tab,
 [data-testid="stTabs"] [role="tab"],
-[data-testid="stTabs"] button[role="tab"],
-[role="tab"] {
+[data-testid="stTabs"] button[role="tab"] {
     flex: 1 1 calc(25% - 8px) !important;
     width: calc(25% - 8px) !important;
     min-width: calc(25% - 8px) !important;
