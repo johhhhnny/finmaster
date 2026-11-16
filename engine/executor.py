@@ -27,35 +27,34 @@ class ExecutionEngine:
         skill_id: str,
         user_params: Dict[str, Any],
         on_status: Optional[Callable[[str], None]] = None,
-        enable_search: bool = True
+        enable_search: bool = False,
+        search_mode: Optional[str] = None
     ) -> Generator[str, None, None]:
         """
         统一执行单智能体模式的技能，以流式生成输出。
-        支持 DataHub (yfinance + SEC EDGAR + Tavily AI / Google Search) 多源智能融合。
+        支持 DataHub (yfinance + SEC EDGAR + FRED + 插件矩阵 + 智能自适应搜索) 多源融合。
         """
         meta = skill_manager.get_skill(skill_id) or {}
         skill_title = meta.get("title", skill_id)
         target = user_params.get("target") or user_params.get("holdings") or "研究标的"
         target_clean = str(target).strip()
 
-        actual_gemini_search = False
-        grounding_md = ""
+        # 调度 DataHub 多源底座 (支持 'off', 'smart', 'on')
+        dh_res = data_hub.get_financial_grounding(
+            target=target_clean,
+            focus=str(user_params.get("criteria", "")),
+            enable_search=enable_search,
+            search_mode=search_mode
+        )
+        provider_name = dh_res.get("summary_badge", "金融数据中台")
+        grounding_md = dh_res.get("grounding_text", "")
+        actual_gemini_search = dh_res.get("gemini_search_allowed", False)
 
-        if enable_search:
-            dh_res = data_hub.get_financial_grounding(
-                target=target_clean,
-                focus=str(user_params.get("criteria", "")),
-                enable_search=True
-            )
-            provider_name = dh_res.get("summary_badge", "金融数据中台")
-            if on_status:
-                on_status(f"🌐 正在通过 [{provider_name}] 实时汇集「{target_clean}」财务报表与权威底稿...")
-
-            grounding_md = dh_res.get("grounding_text", "")
-            actual_gemini_search = False if grounding_md else True
-        else:
-            if on_status:
-                on_status(f"🚀 正在组装「{skill_title}」方法论提示词（纯模型深度知识模式）...")
+        if on_status:
+            if dh_res.get("search_triggered"):
+                on_status(f"🌐 正在通过 [{provider_name}] 实时汇集「{target_clean}」财务报表与权威底稿（含全网实时检索）...")
+            else:
+                on_status(f"⚡ 正在通过 [{provider_name}] 极速加载「{target_clean}」硬核底座（已智能免除搜索耗时）...")
 
         prompt = skill_manager.build_prompt(skill_id, user_params)
         if grounding_md:
@@ -78,11 +77,12 @@ class ExecutionEngine:
         target: str,
         focus: str = "",
         on_progress: Optional[Callable[[str, int, Optional[Dict[str, Any]]], None]] = None,
-        enable_search: bool = True
+        enable_search: bool = False,
+        search_mode: Optional[str] = None
     ) -> Dict[str, str]:
         """
         执行四大师并行投研旗舰流水线（Investment-Team）：
-        1. 实时基准数据侦察 (支持 Tavily AI / Google Search / DDG 智能多级降级调度)
+        1. 实时基准数据侦察 (支持硬核金融底座优先 + 智能按需搜索)
         2. 4个角色（段永平、巴菲特、芒格、李录）线程并发调用
         3. 金融严谨性数学验算
         4. Team Lead 主笔综合汇总
@@ -91,22 +91,20 @@ class ExecutionEngine:
         results: Dict[str, str] = {}
         target_clean = target.strip()
 
-        # Step 0: 基准数据侦察 (接入 DataHub 多源融合中台: yfinance + SEC EDGAR + Tavily AI)
-        actual_gemini_search = False
-        grounding_md = ""
-
+        # Step 0: 基准数据侦察 (接入 DataHub 智能多源调度中台)
         dh_res = data_hub.get_financial_grounding(
             target=target_clean,
             focus=focus,
-            enable_search=enable_search
+            enable_search=enable_search,
+            search_mode=search_mode
         )
         provider_name = dh_res.get("summary_badge", "金融数据中台")
-        if on_progress:
-            on_progress(f"🔍 Step 0: 汇集行情与财务报表底稿 [{provider_name}]...", 10, None)
-
         grounding_md = dh_res.get("grounding_text", "")
-        if not grounding_md and enable_search:
-            actual_gemini_search = True
+        actual_gemini_search = dh_res.get("gemini_search_allowed", False)
+
+        if on_progress:
+            status_desc = "含全网检索" if dh_res.get("search_triggered") else "智能免除搜索耗时"
+            on_progress(f"🔍 Step 0: 汇集行情与财务报表底稿 [{provider_name}] ({status_desc})...", 10, None)
 
         base_recon_prompt = f"""
 请针对研究标的【{target_clean}】，结合最新真实市场数据与检索结果输出精炼的核查基准清单：

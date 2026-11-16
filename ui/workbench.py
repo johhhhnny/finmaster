@@ -33,16 +33,13 @@ def render_workbench(state: SidebarState):
     else:
         mode_badge = '<span style="font-size: 0.72rem; font-weight: 600; color: #047857; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 3px 8px; border-radius: 6px;">🤖 单智能体 (Single-Agent)</span>'
 
-    search_provider = getattr(state, "search_provider", "auto")
-    has_tavily = bool(getattr(state, "tavily_key", ""))
-    if not enable_search:
-        search_badge = '<span style="font-size: 0.72rem; color: #64748b; background: #f8fafc; border: 1px solid #cbd5e1; padding: 3px 8px; border-radius: 6px; font-weight: 600;">📊 yfinance + 🏛️ SEC EDGAR (离线模式)</span>'
-    elif search_provider == "tavily" or (search_provider == "auto" and has_tavily):
-        search_badge = '<span style="font-size: 0.72rem; color: #0284c7; background: #f0f9ff; border: 1px solid #bae6fd; padding: 3px 8px; border-radius: 6px; font-weight: 600;">📊 yfinance + 🏛️ SEC + ⚡ Tavily 混合金融中台</span>'
-    elif search_provider == "duckduckgo":
-        search_badge = '<span style="font-size: 0.72rem; color: #b45309; background: #fffbeb; border: 1px solid #fde68a; padding: 3px 8px; border-radius: 6px; font-weight: 600;">📊 yfinance + 🏛️ SEC + 🦆 DuckDuckGo</span>'
+    curr_mode_idx = st.session_state.get("workbench_search_mode_idx", 0)
+    if curr_mode_idx == 0:
+        search_badge = '<span style="font-size: 0.72rem; color: #166534; background: #ecfdf5; border: 1px solid #bbf7d0; padding: 3px 8px; border-radius: 6px; font-weight: 600;">⚡ 七大硬核金融底座 (秒级免搜索)</span>'
+    elif curr_mode_idx == 1:
+        search_badge = '<span style="font-size: 0.72rem; color: #0284c7; background: #f0f9ff; border: 1px solid #bae6fd; padding: 3px 8px; border-radius: 6px; font-weight: 600;">🤖 智能多源调度 (硬核优先，按需搜索)</span>'
     else:
-        search_badge = '<span style="font-size: 0.72rem; color: #059669; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 3px 8px; border-radius: 6px; font-weight: 600;">📊 yfinance + 🏛️ SEC + 🛡️ Google 实时联网</span>'
+        search_badge = '<span style="font-size: 0.72rem; color: #b45309; background: #fffbeb; border: 1px solid #fde68a; padding: 3px 8px; border-radius: 6px; font-weight: 600;">🌐 全网实时新闻与商业动态检索</span>'
 
     st.markdown(f"""
     <div class="skill-hero-card">
@@ -124,6 +121,40 @@ def render_workbench(state: SidebarState):
                 else:
                     user_inputs[k] = st.text_input(label_display, value=initial_text, placeholder=placeholder)
 
+        # 搜索调度模式选择器 (默认：关闭搜索，依托7大金融底座极速出具)
+        st.markdown("""
+        <div style="margin-top: 10px; margin-bottom: 4px; font-size: 0.78rem; font-weight: 600; color: #475569; display: flex; align-items: center; justify-content: space-between;">
+            <span>🌐 全网搜索调度策略：</span>
+            <span style="font-size: 0.72rem; color: #059669; font-weight: 500;">⚡ 默认关闭：依托 7 大硬核金融底座秒级出具</span>
+        </div>
+        """, unsafe_allow_html=True)
+        search_mode_options = [
+            "🚫 关闭搜索 (默认 · 依托7大确定性金融底座，秒级极速严谨)",
+            "🤖 智能调度 (优先硬核数据，无财报/突发新闻时按需启用)",
+            "🌐 强制搜索 (检索全网最新新闻资讯与即时动态)"
+        ]
+
+        if "workbench_search_mode_idx" not in st.session_state:
+            st.session_state["workbench_search_mode_idx"] = 0
+
+        selected_mode_str = st.radio(
+            "搜索调度模式",
+            search_mode_options,
+            index=st.session_state["workbench_search_mode_idx"],
+            horizontal=True,
+            label_visibility="collapsed"
+        )
+
+        if "关闭搜索" in selected_mode_str:
+            chosen_search_mode = "off"
+            st.session_state["workbench_search_mode_idx"] = 0
+        elif "智能调度" in selected_mode_str:
+            chosen_search_mode = "smart"
+            st.session_state["workbench_search_mode_idx"] = 1
+        else:
+            chosen_search_mode = "on"
+            st.session_state["workbench_search_mode_idx"] = 2
+
         # 启动按钮与系统状态栏
         btn_action_col, hint_action_col = st.columns([1.2, 3.8])
         with btn_action_col:
@@ -132,26 +163,26 @@ def render_workbench(state: SidebarState):
             if not client.is_configured():
                 st.warning("👈 请先在左侧侧边栏填入 Gemini API Key 即可启动！")
             else:
-                if not enable_search:
-                    net_text = "纯模型推演 (无联网)"
-                    net_color = "#64748b"
-                elif search_provider == "tavily" or (search_provider == "auto" and has_tavily):
-                    net_text = "开启 (Tavily AI 免限)"
+                if chosen_search_mode == "off":
+                    net_text = "已关闭 (7大底座秒级模式)"
+                    net_color = "#166534"
+                    est_time = "8~15s" if skill_mode == "multi_agent" else "3~5s"
+                elif chosen_search_mode == "smart":
+                    net_text = "智能调度 (硬核优先，按需触发)"
                     net_color = "#0284c7"
-                elif search_provider == "duckduckgo":
-                    net_text = "开启 (DuckDuckGo)"
-                    net_color = "#b45309"
+                    est_time = "10~18s" if skill_mode == "multi_agent" else "5~8s"
                 else:
-                    net_text = "开启 (Google Search)"
-                    net_color = "#059669"
+                    net_text = "强制搜索 (含全网实时检索)"
+                    net_color = "#b45309"
+                    est_time = "18~30s" if skill_mode == "multi_agent" else "10~15s"
 
                 st.markdown(f'''
                 <div style="display: flex; align-items: center; height: 100%; min-height: 2.35rem; font-size: 0.78rem; color: #475569; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0 12px;">
                     <span>⚡ <strong>引擎状态</strong>：<span style="color: #059669; font-weight: 600;">就绪 ({saved_model})</span></span>
                     <span style="margin: 0 10px; color: #cbd5e1;">|</span>
-                    <span>🌐 <strong>实时联网</strong>：<span style="color: {net_color}; font-weight: 600;">{net_text}</span></span>
+                    <span>🌐 <strong>全网搜索</strong>：<span style="color: {net_color}; font-weight: 600;">{net_text}</span></span>
                     <span style="margin: 0 10px; color: #cbd5e1;">|</span>
-                    <span>⏱️ <strong>预计耗时</strong>：<span style="color: #1e293b; font-weight: 600;">{"15~30s" if skill_mode == "multi_agent" else "8~15s"}</span></span>
+                    <span>⏱️ <strong>预计耗时</strong>：<span style="color: #1e293b; font-weight: 600;">{est_time}</span></span>
                 </div>
                 ''', unsafe_allow_html=True)
 
@@ -348,7 +379,8 @@ def render_workbench(state: SidebarState):
                     target=target_name,
                     focus=user_inputs.get("focus", ""),
                     on_progress=progress_callback,
-                    enable_search=enable_search
+                    enable_search=(chosen_search_mode != "off"),
+                    search_mode=chosen_search_mode
                 )
                 elapsed = time.time() - start_time
 
@@ -412,7 +444,8 @@ def render_workbench(state: SidebarState):
                     skill_id=selected_skill_id,
                     user_params=user_inputs,
                     on_status=status_callback,
-                    enable_search=enable_search
+                    enable_search=(chosen_search_mode != "off"),
+                    search_mode=chosen_search_mode
                 ):
                     full_text += chunk
                     report_placeholder.markdown(full_text + " ▌")

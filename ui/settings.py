@@ -195,11 +195,11 @@ def render_settings():
         st.markdown('<div style="font-size: 0.82rem; color: #64748b; margin-bottom: 16px;">智能多级调度引擎，规避 Gemini 免费层每日 20 次搜索限制，确保投研不中断。</div>', unsafe_allow_html=True)
 
         provider_map = {
-            "auto": "🤖 智能多级调度 (Auto 优先Tavily/原生Google/DDG - 强烈推荐)",
-            "tavily": "⚡ Tavily AI 搜索 (推荐 · 1,000次/月 独立免限配额)",
+            "none": "🚫 默认关闭全网搜索 (依托 7 大确定性金融底座，秒级极速严谨)",
+            "auto": "🤖 智能自适应调度 (优先硬核底座，仅在未上市或突发新闻时启动)",
+            "tavily": "⚡ Tavily AI 搜索 (强制开启 · 1,000次/月 独立免限配额)",
             "google": "🌐 Gemini 原生 Google Search (每日限20次配额)",
-            "duckduckgo": "🦆 DuckDuckGo 免费搜索 (免Key极简)",
-            "none": "🚫 关闭联网搜索 (仅基于官方底座与模型离线推演)"
+            "duckduckgo": "🦆 DuckDuckGo 免费搜索 (免Key极简)"
         }
         prov_keys = list(provider_map.keys())
         current_p = st.session_state["cfg_provider"]

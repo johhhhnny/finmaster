@@ -84,11 +84,12 @@ def render_sidebar() -> SidebarState:
         # 4. 底部系统运行状态快照 (极简、通透、现代化卡片)
         active_plugins = sum(1 for v in plugin_keys.values() if v and len(v.strip()) > 3)
         prov_display = {
-            "auto": "Auto 调度",
+            "auto": "智能自适应",
             "tavily": "Tavily AI",
             "google": "Google 原生",
             "duckduckgo": "DuckDuckGo",
-            "none": "离线推演"
+            "none": "默认关闭 (7大底座)",
+            "off": "默认关闭 (7大底座)"
         }.get(saved_provider, saved_provider.upper())
 
         st.markdown('<div class="sidebar-section-title" style="margin-top: 20px;">🖥️ 系统运行状态</div>', unsafe_allow_html=True)
