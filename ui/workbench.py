@@ -55,7 +55,6 @@ def render_workbench(state: SidebarState):
 
     # 2. 现代参数控制台卡片 (Parameter Control Station Card)
     inputs_def = skill_meta.get("inputs", [])
-    has_target = any(inp["key"] in ("target", "holdings") for inp in inputs_def)
 
     try:
         param_card_box = st.container(border=True)
@@ -63,27 +62,7 @@ def render_workbench(state: SidebarState):
         param_card_box = st.container()
 
     with param_card_box:
-        p_head_col1, p_head_col2 = st.columns([1, 2])
-        with p_head_col1:
-            st.markdown('<div style="font-size: 0.92rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 6px;"><span>📝</span> 设定研究参数</div>', unsafe_allow_html=True)
-        with p_head_col2:
-            st.markdown('<div style="text-align: right; font-size: 0.73rem; color: #64748b;">⚡ 点选下方快捷药丸，秒级填入分析代码</div>', unsafe_allow_html=True)
-
-        if has_target:
-            q_cols = st.columns(6)
-            samples = [
-                ("🍎 苹果 AAPL", "苹果 / AAPL"),
-                ("🔍 谷歌 GOOGL", "谷歌 / GOOGL"),
-                ("⚡ 特斯拉 TSLA", "特斯拉 / TSLA"),
-                ("🍶 贵州茅台", "贵州茅台 / 600519"),
-                ("🐧 腾讯控股", "腾讯控股 / 00700"),
-                ("💊 伯克希尔", "伯克希尔哈撒韦 / BRK.B")
-            ]
-            for s_i, (s_name, s_val) in enumerate(samples):
-                with q_cols[s_i]:
-                    if st.button(s_name, key=f"quick_s_{s_i}", use_container_width=True):
-                        st.session_state["target_preset_val"] = s_val
-                        st.rerun()
+        st.markdown('<div style="font-size: 0.92rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 6px; margin-bottom: 8px;"><span>📝</span> 设定研究参数</div>', unsafe_allow_html=True)
 
         # 动态输入表单字段
         user_inputs = {}
@@ -102,15 +81,11 @@ def render_workbench(state: SidebarState):
             label_display = f"{lbl} *" if req else lbl
             col_ctx = form_cols[idx]
 
-            initial_text = ""
-            if k in ("target", "holdings") and "target_preset_val" in st.session_state:
-                initial_text = st.session_state["target_preset_val"]
-
             with col_ctx:
                 if is_textarea:
-                    user_inputs[k] = st.text_area(label_display, value=initial_text, placeholder=placeholder, height=110)
+                    user_inputs[k] = st.text_area(label_display, placeholder=placeholder, height=110, key=f"wb_in_{k}")
                 else:
-                    user_inputs[k] = st.text_input(label_display, value=initial_text, placeholder=placeholder)
+                    user_inputs[k] = st.text_input(label_display, placeholder=placeholder, key=f"wb_in_{k}")
 
         # 搜索调度模式选择器 (默认：关闭全网搜索，依托 7 大确定性金融底座秒级极速出具)
         st.markdown("""
