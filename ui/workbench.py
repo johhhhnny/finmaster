@@ -189,7 +189,7 @@ def render_workbench(state: SidebarState):
             <div style="font-size: 0.94rem; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 6px;">
                 <span>📋</span> 投研体系架构、知识库联动与分析规范
             </div>
-            <div style="font-size: 0.74rem; color: #64748b;">四大师分工 · 专属执行流程 · 历史研报速览 · 严谨性铁律</div>
+            <div style="font-size: 0.73rem; color: #64748b;">⚡ 点选下方分段标签，切换投研分工、流程规范与知识库</div>
         </div>
         """, unsafe_allow_html=True)
 
