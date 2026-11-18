@@ -157,8 +157,8 @@ def render_sidebar() -> SidebarState:
             "tavily": "Tavily AI",
             "google": "Google 原生",
             "duckduckgo": "DuckDuckGo",
-            "none": "默认关闭 (7大底座)",
-            "off": "默认关闭 (7大底座)"
+            "none": "全局关闭搜索",
+            "off": "全局关闭搜索"
         }.get(saved_provider, saved_provider.upper())
 
         st.markdown('<div class="sidebar-section-title" style="margin-top: 18px;">🖥️ 系统运行状态</div>', unsafe_allow_html=True)
@@ -173,8 +173,8 @@ def render_sidebar() -> SidebarState:
                 <span style="font-weight: 600; color: #0284c7;">{prov_display}</span>
             </div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
-                <span style="color: #64748b;">官方底座:</span>
-                <span style="font-weight: 600; color: #166534;">yfinance + SEC + FRED 🟢</span>
+                <span style="color: #64748b;">数据底座:</span>
+                <span style="font-weight: 600; color: #166534;">Yahoo Finance + SEC + FRED 🟢</span>
             </div>
             <div style="display: flex; justify-content: space-between;">
                 <span style="color: #64748b;">扩展插件:</span>
@@ -186,21 +186,27 @@ def render_sidebar() -> SidebarState:
         # 5. 底部独立常驻设置入口卡片 / 按钮
         is_settings_active = (app_mode == "⚙️ 系统与数据源设置")
         settings_label = "⚙️ 系统与数据源设置 (当前激活)" if is_settings_active else "⚙️ 系统与数据源设置"
-        if st.button(
-            settings_label,
-            key="sidebar_bottom_settings_btn",
-            type="primary" if is_settings_active else "secondary",
-            use_container_width=True
-        ):
-            if is_settings_active:
+
+        def _toggle_settings_view():
+            if st.session_state["sidebar_app_mode"] == "⚙️ 系统与数据源设置":
                 # 切换回上次的工作台视图
-                st.session_state["sidebar_app_mode"] = st.session_state.get("last_workbench_nav", "🚀 智能投研工作台")
-                st.session_state["sidebar_top_nav_radio"] = st.session_state["sidebar_app_mode"]
+                app_mode_to_restore = st.session_state.get(
+                    "last_workbench_nav", "🚀 智能投研工作台"
+                )
+                st.session_state["sidebar_app_mode"] = app_mode_to_restore
+                st.session_state["sidebar_top_nav_radio"] = app_mode_to_restore
             else:
                 # 切换为系统设置全屏中台
                 st.session_state["sidebar_app_mode"] = "⚙️ 系统与数据源设置"
                 st.session_state["sidebar_top_nav_radio"] = None
-            st.rerun()
+
+        st.button(
+            settings_label,
+            key="sidebar_bottom_settings_btn",
+            on_click=_toggle_settings_view,
+            type="primary" if is_settings_active else "secondary",
+            use_container_width=True
+        )
 
         return SidebarState(
             app_mode=app_mode,

@@ -2,7 +2,16 @@
 FinMaster UI 金融严谨性计算器模块
 基于 tools/financial_rigor.py 的高精度纯十进制数学运算，杜绝浮点误差与大模型心算漂移。
 """
+from decimal import Decimal
+
 import streamlit as st
+
+from tools.calculator_math import (
+    calculate_market_cap_check,
+    calculate_scenario,
+    calculate_valuation_metrics,
+    decimal_value,
+)
 
 def render_calculator():
     """渲染金融严谨性计算器主界面"""
@@ -17,7 +26,7 @@ def render_calculator():
                     <span style="font-size: 0.72rem; background: #f1f5f9; color: #475569; padding: 2px 8px; border-radius: 9999px; font-weight: 600;">确定性纯十进制 Decimal 引擎</span>
                 </div>
                 <div style="font-size: 0.83rem; color: #475569; line-height: 1.45;">
-                    <strong style="color: #1e293b;">计算器定位：</strong>严格基于 <code>tools/financial_rigor.py</code> 的纯十进制确定性数学验算。涵盖核心主营扣现金市盈率测算、市值总股本配比稽核及三情景收益推演，彻底杜绝浮点误差与大模型心算漂移。
+                    <strong style="color: #1e293b;">计算器定位：</strong>严格基于 <code>tools/calculator_math.py</code> 的纯十进制确定性数学验算。涵盖核心主营扣现金市盈率测算、市值总股本配比稽核及三情景收益推演，彻底杜绝浮点误差与大模型心算漂移。
                 </div>
             </div>
             <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 6px;">
@@ -85,13 +94,17 @@ def render_calculator():
             st.markdown('<div style="height: 1px; background: #e2e8f0; margin: 14px 0 16px 0;"></div>', unsafe_allow_html=True)
 
             # KPI 指标卡片
-            if eps_val > 0:
-                pe = p_val / eps_val
-                ex_cash_pe = (p_val - cash_val) / eps_val
-                pb = p_val / bvps_val if bvps_val > 0 else 0
-                roe = (eps_val / bvps_val) * 100 if bvps_val > 0 else 0
-                ey = (1 / pe) * 100
-                cash_discount = pe - ex_cash_pe
+            try:
+                metrics = calculate_valuation_metrics(p_val, eps_val, bvps_val, cash_val)
+            except ValueError as exc:
+                st.error(f"无法计算估值指标：{exc}")
+            else:
+                pe = metrics["pe"]
+                ex_cash_pe = metrics["ex_cash_pe"]
+                pb = metrics["pb"]
+                roe = metrics["roe"]
+                ey = metrics["earnings_yield"]
+                cash_discount = metrics["cash_discount"]
 
                 st.markdown('<div style="font-size: 0.9rem; font-weight: 700; color: #0f172a; margin-bottom: 10px;">📊 核心估值与造血指标矩阵</div>', unsafe_allow_html=True)
                 m1, m2, m3, m4, m5 = st.columns(5)
@@ -102,7 +115,7 @@ def render_calculator():
                 m5.metric("核心经营 ROE", f"{roe:.2f}%")
 
                 # 巴菲特安全边际透视卡片
-                ev_per_share = p_val - cash_val
+                ev_per_share = metrics["enterprise_value_per_share"]
                 if ex_cash_pe <= 22:
                     safety_status = "🟢 显著具备安全边际 · 处于公道偏低价值区间（强力增持/买入观察）"
                     status_color = "#047857"
@@ -157,27 +170,30 @@ def render_calculator():
             with col_mc3:
                 m_reported = st.number_input("报告披露市值 ($)", value=3653000000000, step=1000000000, key="mc_r")
 
-            calc_cap = m_price * m_shares
-            diff_pct = abs(calc_cap - m_reported) / m_reported * 100
-
-            st.markdown('<div style="height: 1px; background: #e2e8f0; margin: 12px 0 14px 0;"></div>', unsafe_allow_html=True)
-
-            res_col1, res_col2 = st.columns(2)
-            res_col1.metric("精确数学推导市值", f"${calc_cap/1e12:.3f} 万亿")
-            res_col2.metric("报告披露市值", f"${m_reported/1e12:.3f} 万亿", delta=f"偏差率 {diff_pct:.2f}%")
-
-            if diff_pct <= 1.0:
-                st.markdown(f"""
-                <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 6px; padding: 10px 14px; color: #047857; font-size: 0.78rem; font-weight: 600; margin-top: 10px;">
-                    ✅ 稽核通过：推导市值与披露市值高度契合（偏差 {diff_pct:.2f}% ≤ 1.0%），确认为一手真实财务披露，无大模型幻觉虚构数据风险。
-                </div>
-                """, unsafe_allow_html=True)
+            try:
+                calc_cap, diff_pct = calculate_market_cap_check(m_price, m_shares, m_reported)
+            except ValueError as exc:
+                st.error(f"无法完成市值稽核：{exc}")
             else:
-                st.markdown(f"""
-                <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 10px 14px; color: #b45309; font-size: 0.78rem; font-weight: 600; margin-top: 10px;">
-                    ⚠️ 稽核提示：计算偏差达 {diff_pct:.2f}% > 1.0%，请重点核查：1) 股本是否使用了未稀释 Basic Shares 代替了 Diluted Shares；2) 标的近期是否存在拆股、反向拆股或大规模回购注销。
-                </div>
-                """, unsafe_allow_html=True)
+                st.markdown('<div style="height: 1px; background: #e2e8f0; margin: 12px 0 14px 0;"></div>', unsafe_allow_html=True)
+
+                res_col1, res_col2 = st.columns(2)
+                res_col1.metric("精确数学推导市值", f"${calc_cap / Decimal('1e12'):.3f} 万亿")
+                reported_cap = decimal_value(m_reported)
+                res_col2.metric("报告披露市值", f"${reported_cap / Decimal('1e12'):.3f} 万亿", delta=f"偏差率 {diff_pct:.2f}%")
+
+                if diff_pct <= Decimal("1.0"):
+                    st.markdown(f"""
+                    <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 6px; padding: 10px 14px; color: #047857; font-size: 0.78rem; font-weight: 600; margin-top: 10px;">
+                        ✅ 稽核通过：推导市值与披露市值高度契合（偏差 {diff_pct:.2f}% ≤ 1.0%），请仍以原始披露来源为准。
+                    </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.markdown(f"""
+                    <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 10px 14px; color: #b45309; font-size: 0.78rem; font-weight: 600; margin-top: 10px;">
+                        ⚠️ 稽核提示：计算偏差达 {diff_pct:.2f}% > 1.0%，请重点核查：1) 股本是否使用了未稀释 Basic Shares 代替了 Diluted Shares；2) 标的近期是否存在拆股、反向拆股或大规模回购注销。
+                    </div>
+                    """, unsafe_allow_html=True)
 
     # -------------------------------------------------------------------------
     # TAB 3: 未来三年目标股价推演 (Three-Scenario Model)
@@ -199,27 +215,30 @@ def render_calculator():
                 sc_years = st.slider("预测退出年限 (年)", 1, 5, 3)
 
             sc_data = [
-                {"情景": "🟢 乐观 (Bull)", "年化增速": 0.20, "目标PE": 30.0, "描述": "核心主营超预期增长，高毛利业务占比提升，估值中枢扩张"},
-                {"情景": "🔵 中性 (Base)", "年化增速": 0.14, "目标PE": 24.0, "描述": "稳态成长，资本开支良性转化，估值维持历史5年中枢"},
-                {"情景": "🔴 悲观 (Bear)", "年化增速": 0.05, "目标PE": 18.0, "描述": "竞争加剧份额承压，技术换代带来折旧压力，估值压缩"}
+                {"情景": "🟢 乐观 (Bull)", "年化增速": "0.20", "目标PE": "30", "描述": "核心主营超预期增长，高毛利业务占比提升，估值中枢扩张"},
+                {"情景": "🔵 中性 (Base)", "年化增速": "0.14", "目标PE": "24", "描述": "稳态成长，资本开支良性转化，估值维持历史5年中枢"},
+                {"情景": "🔴 悲观 (Bear)", "年化增速": "0.05", "目标PE": "18", "描述": "竞争加剧份额承压，技术换代带来折旧压力，估值压缩"}
             ]
 
             st.markdown(f'<div style="font-size: 0.88rem; font-weight: 700; color: #0f172a; margin-top: 14px; margin-bottom: 8px;">未来 {sc_years} 年预期收益矩阵 (Compound Growth Matrix)：</div>', unsafe_allow_html=True)
-            sc_rows = []
-            for s in sc_data:
-                future_eps = base_eps * ((1 + s["年化增速"]) ** sc_years)
-                target_price = future_eps * s["目标PE"]
-                gain_pct = (target_price - base_p) / base_p * 100
-                cagr = (((target_price / base_p) ** (1 / sc_years)) - 1) * 100
-
-                sc_rows.append({
-                    "情景": s["情景"],
-                    "年均 EPS 复合增速": f"{s['年化增速']*100:.1f}%",
-                    "退出目标 PE": f"{s['目标PE']:.0f}x",
-                    f"{sc_years}年后预期 EPS": f"${future_eps:.2f}",
-                    "推导目标股价": f"${target_price:.2f}",
-                    "累计涨跌幅": f"{'+' if gain_pct>0 else ''}{gain_pct:.1f}%",
-                    "年化预期回报 (CAGR)": f"{'+' if cagr>0 else ''}{cagr:.1f}%"
-                })
-
-            st.table(sc_rows)
+            try:
+                sc_rows = []
+                for scenario in sc_data:
+                    growth = decimal_value(scenario["年化增速"])
+                    exit_pe = decimal_value(scenario["目标PE"])
+                    result = calculate_scenario(base_p, base_eps, growth, exit_pe, sc_years)
+                    gain_pct = result["gain_pct"]
+                    cagr_pct = result["cagr_pct"]
+                    sc_rows.append({
+                        "情景": scenario["情景"],
+                        "年均 EPS 复合增速": f"{growth * Decimal('100'):.1f}%",
+                        "退出目标 PE": f"{exit_pe:.0f}x",
+                        f"{sc_years}年后预期 EPS": f"${result['future_eps']:.2f}",
+                        "推导目标股价": f"${result['target_price']:.2f}",
+                        "累计涨跌幅": f"{'+' if gain_pct > 0 else ''}{gain_pct:.1f}%",
+                        "年化预期回报 (CAGR)": f"{'+' if cagr_pct > 0 else ''}{cagr_pct:.1f}%"
+                    })
+            except ValueError as exc:
+                st.error(f"无法完成情景推演：{exc}")
+            else:
+                st.table(sc_rows)

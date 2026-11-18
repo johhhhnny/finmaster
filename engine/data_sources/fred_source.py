@@ -11,6 +11,7 @@ import os
 import time
 import logging
 import requests
+from datetime import datetime, timezone
 from typing import Dict, Any, Optional, List
 
 logger = logging.getLogger(__name__)
@@ -120,9 +121,10 @@ class FredSource:
                 if last_p is not None and last_p > 0:
                     return {
                         "series_id": "DGS10",
-                        "date": time.strftime("%Y-%m-%d"),
+                        "date": None,
                         "value": round(float(last_p), 2),
-                        "source": "yfinance_TNX_fallback"
+                        "source": "yfinance_TNX_fallback",
+                        "retrieved_at": datetime.now(timezone.utc).isoformat(timespec="seconds")
                     }
             except Exception as e:
                 logger.debug(f"yfinance 宏观收益率兜底失败: {e}")
@@ -180,12 +182,14 @@ class FredSource:
         latency = (time.time() - start_t) * 1000.0
 
         if res and res.get("value") is not None:
-            src_text = "官方直连" if res.get("source") != "yfinance_TNX_fallback" else "免密实时国债通道"
+            src_text = "FRED 官方数据" if res.get("source") != "yfinance_TNX_fallback" else "Yahoo Finance ^TNX 第三方备用数据"
+            if res.get("source") == "yfinance_TNX_fallback":
+                src_text += "（仅作近似代理，非官方国债收益率观测）"
             return {
                 "success": True,
                 "latency_ms": latency,
-                "message": f"FRED 宏观底座连通正常！10年期美债收益率: {res['value']:.2f}%",
-                "details": f"基准日期: {res.get('date')} | 来源: {src_text} | 序列: DGS10 (美国10年期国债收益率，买方无风险利率 Rf)"
+                "message": f"宏观利率数据通道可用！10年期收益率参考值: {res['value']:.2f}%",
+                "details": f"观测日期: {res.get('date') or '供应方未提供'} | 来源: {src_text} | 序列: DGS10"
             }
         else:
             return {
@@ -202,16 +206,32 @@ class FredSource:
             return ""
 
         data = overview.get("data", {})
+        retrieved_at = overview.get("timestamp")
         lines = [
-            "### 🏛️ 【FRED 圣路易斯联储官方宏观基准 · 买方估值底座】",
-            "- **数据性质**：美国联邦储备银行官方主权级宏观与利率基准（买方估值折现率锚点）",
+            "### 🏛️ 【宏观与利率基准】",
+            "- **来源说明**：宏观序列优先来自 FRED；DGS10 不可用时可能回退到 Yahoo Finance ^TNX 第三方近似值。",
         ]
+        if retrieved_at:
+            lines.append(
+                f"- **本次获取时间**：`{datetime.fromtimestamp(retrieved_at, timezone.utc).isoformat(timespec='seconds')}`（UTC）"
+            )
 
         # 1. 10年期国债收益率 (Rf)
         dgs10 = data.get("DGS10")
         if dgs10:
-            lines.append(f"- 🇺🇸 **10年期美国国债收益率 (无风险利率 Rf)**：**`{dgs10['value']:.2f}%`** *(基准日: {dgs10['date']})*")
-            lines.append(f"  • *估值指导：在 DCF 现金流折现与 CAPM 股权成本计算中，建议直接以 `{dgs10['value']:.2f}%` 作为无风险基准，避免盲目预估*")
+            is_proxy = dgs10.get("source") == "yfinance_TNX_fallback"
+            source = "Yahoo Finance ^TNX 第三方近似值，非 FRED 官方观测" if is_proxy else "FRED 官方观测"
+            observation_date = dgs10.get("date") or "供应方未提供"
+            lines.append(
+                f"- 🇺🇸 **10年期美国国债收益率参考值**：**`{dgs10['value']:.2f}%`** "
+                f"*(来源: {source}; 观测日期: {observation_date})*"
+            )
+            if is_proxy:
+                lines.append("  • *该值仅为市场代理数据，不应视作官方国债收益率观测。*")
+            else:
+                lines.append(
+                    f"  • *估值参考：可将 `{dgs10['value']:.2f}%` 作为无风险利率估值输入之一，并结合数据日期进行判断。*"
+                )
 
         # 2. 10Y-2Y 倒挂利差 (衰退雷达)
         t10y2y = data.get("T10Y2Y")

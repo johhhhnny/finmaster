@@ -16,6 +16,10 @@ from .data_sources import data_hub
 REPORTS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "reports"))
 
 
+class MultiAgentExecutionError(RuntimeError):
+    """Raised when one or more specialist agents fail and synthesis must stop."""
+
+
 class ExecutionEngine:
     """投研执行引擎"""
 
@@ -133,6 +137,10 @@ class ExecutionEngine:
             base_recon_prompt = f"{grounding_md}\n\n---\n\n{base_recon_prompt}"
 
         base_recon = self.llm.generate_content_sync(base_recon_prompt, enable_search=actual_gemini_search)
+        try:
+            self._ensure_model_response("基准核查", base_recon)
+        except RuntimeError as e:
+            raise MultiAgentExecutionError(str(e)) from e
         results["00_baseline_recon"] = base_recon
 
         if on_progress:
@@ -206,34 +214,44 @@ class ExecutionEngine:
         # 并行执行 4 个角色（此时 4 大师共享已完成实时事实核验的 base_recon 基准数据，无需重复消耗搜索配额，杜绝 429 并发超限）
         time.sleep(1.0)
         subagent_outputs = {}
+        role_failures: Dict[str, str] = {}
 
         def _run_role_staggered(role_name: str, task_prompt: str, delay_sec: float) -> tuple:
             if delay_sec > 0:
                 time.sleep(delay_sec)
             res_text = self.llm.generate_content_sync(task_prompt, enable_search=False)
+            self._ensure_model_response(role_name, res_text)
             return role_name, res_text
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-            future_list = []
+            future_roles = {}
             for idx, (role, prompt) in enumerate(tasks.items()):
                 pacing_gap = idx * 1.5  # 分别于 0.0s, 1.5s, 3.0s, 4.5s 错开启动
-                future_list.append(
-                    executor.submit(_run_role_staggered, role, prompt, pacing_gap)
-                )
+                future = executor.submit(_run_role_staggered, role, prompt, pacing_gap)
+                future_roles[future] = role
 
             completed_count = 0
-            for future in concurrent.futures.as_completed(future_list):
+            for future in concurrent.futures.as_completed(future_roles):
                 completed_count += 1
+                role = future_roles[future]
                 try:
-                    role, out = future.result()
+                    _, out = future.result()
                     subagent_outputs[role] = out
                     results[role] = out
                     if on_progress:
                         pct = 25 + int((completed_count / 4.0) * 40)
                         on_progress(f"  ⚡ 角色完成 ({completed_count}/4): {role} 已就绪", pct, {"role": role, "content": out})
                 except Exception as e:
-                    subagent_outputs[role] = f"角色分析生成异常: {str(e)}"
-                    results[role] = subagent_outputs[role]
+                    role_failures[role] = f"{type(e).__name__}: {e}"
+
+        if role_failures:
+            failure_details = "；".join(
+                f"{role}: {error}" for role, error in role_failures.items()
+            )
+            message = f"四大师分析未全部完成，已中止综合报告生成。失败角色：{failure_details}"
+            if on_progress:
+                on_progress(f"❌ {message}", 65, {"error": message})
+            raise MultiAgentExecutionError(message)
 
         # 冷却 1.5 秒后进入主笔综合汇总
         time.sleep(1.5)
@@ -297,14 +315,38 @@ class ExecutionEngine:
 8. 总结段落
 """
         final_report = ""
+        last_error = None
         for attempt in range(3):
             final_report = self.llm.generate_content_sync(synthesis_prompt, enable_search=False)
-            if "Gemini API 请求失败" not in final_report and "unexpected EOF" not in final_report:
+            try:
+                self._ensure_model_response("Team Lead 综合报告", final_report)
+            except RuntimeError as e:
+                last_error = e
+                if attempt < 2:
+                    time.sleep(2.0 * (attempt + 1))
+                    continue
                 break
-            time.sleep(2.0 * (attempt + 1))
+            else:
+                last_error = None
+                break
+
+        if last_error:
+            raise MultiAgentExecutionError(str(last_error)) from last_error
 
         self._save_report(target=target_clean, filename="05_最终综合报告.md", content=final_report)
         return final_report
+
+    @staticmethod
+    def _ensure_model_response(stage: str, response: str) -> None:
+        if not response or not response.strip():
+            raise RuntimeError(f"{stage}返回空响应。")
+        known_error_prefixes = (
+            "❌ Gemini API ",
+            "❌ 网络连接异常:",
+            "⚠️ 未配置 GEMINI_API_KEY",
+        )
+        if response.startswith(known_error_prefixes):
+            raise RuntimeError(f"{stage}失败：{response}")
 
     def _save_report(self, target: str, filename: str, content: str):
         """保存研报至 reports/{target}/ 目录"""

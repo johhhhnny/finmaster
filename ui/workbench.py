@@ -8,6 +8,7 @@ import streamlit as st
 
 from engine.skill_manager import skill_manager
 from engine.archive_manager import archive_manager
+from engine.executor import MultiAgentExecutionError
 from ui.sidebar import SidebarState
 
 def render_workbench(state: SidebarState):
@@ -132,6 +133,9 @@ def render_workbench(state: SidebarState):
             mode_desc_bg = "#fffbeb"
             mode_desc_color = "#92400e"
 
+        if chosen_search_mode != "off" and state.search_provider.strip().lower() in ("none", "off"):
+            st.warning("系统设置已全局关闭联网搜索。若要启用搜索，请先在「系统与数据源设置」中选择搜索提供器。")
+
         st.markdown(f'''
         <div style="font-size: 0.74rem; color: {mode_desc_color}; background: {mode_desc_bg}; border: 1px solid {mode_desc_border}; border-radius: 6px; padding: 6px 12px; margin-top: 3px; margin-bottom: 12px; line-height: 1.45;">
             {mode_desc}
@@ -151,7 +155,7 @@ def render_workbench(state: SidebarState):
                 <div style="display: flex; align-items: center; justify-content: space-between; height: 100%; min-height: 2.4rem; font-size: 0.76rem; color: #475569; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0 14px;">
                     <span>⚡ <strong>推理引擎</strong>：<span style="color: #059669; font-weight: 600;">{saved_model}</span></span>
                     <span style="color: #cbd5e1;">|</span>
-                    <span>🏦 <strong>数据底座</strong>：<span style="color: #1d4ed8; font-weight: 600;">7 大官方源就绪</span></span>
+                    <span>🏦 <strong>数据底座</strong>：<span style="color: #1d4ed8; font-weight: 600;">多源数据接口就绪</span></span>
                     <span style="color: #cbd5e1;">|</span>
                     <span>⏱️ <strong>预估耗时</strong>：<span style="color: #0f172a; font-weight: 600;">{est_time}</span></span>
                 </div>
@@ -299,7 +303,7 @@ def render_workbench(state: SidebarState):
                 <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; height: 100%;">
                     <div style="font-size: 0.88rem; font-weight: 700; color: #0f172a; margin-bottom: 6px;">🛡️ 防本地历史数据污染</div>
                     <div style="font-size: 0.76rem; color: #475569; line-height: 1.5;">
-                        严禁从本地历史缓存中读取最新股价、市值或财报！所有财务与宏观数据必须直接经由 FRED、Tiingo、yfinance、AkShare 等 7 大官方确定性底座及官方一手 10-Q / 10-K 获取，并强制注明数据截断时间戳。
+                        不使用本地历史缓存冒充最新行情或财报。应标明每项数据的实际来源与可用时点；SEC 申报文件属于官方来源，yfinance 等聚合服务并非交易所直连。
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
@@ -362,13 +366,18 @@ def render_workbench(state: SidebarState):
                             card4.success("🟣 **李录视角**\n\n✅ 治理与文明确定性已完成")
 
                 start_time = time.time()
-                results = engine.execute_multi_agent_team(
-                    target=target_name,
-                    focus=user_inputs.get("focus", ""),
-                    on_progress=progress_callback,
-                    enable_search=(chosen_search_mode != "off"),
-                    search_mode=chosen_search_mode
-                )
+                try:
+                    results = engine.execute_multi_agent_team(
+                        target=target_name,
+                        focus=user_inputs.get("focus", ""),
+                        on_progress=progress_callback,
+                        enable_search=(chosen_search_mode != "off"),
+                        search_mode=chosen_search_mode
+                    )
+                except MultiAgentExecutionError as e:
+                    status_text.error("❌ 四大师分析未全部完成，综合报告已中止。")
+                    st.error(str(e))
+                    st.stop()
                 elapsed = time.time() - start_time
 
                 st.success(f"🎉 投研团队流水线执行完毕！总耗时: {elapsed:.1f} 秒。报告已归档至 `finmaster/reports/{target_name}/`")

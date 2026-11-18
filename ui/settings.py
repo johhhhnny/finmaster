@@ -1,6 +1,6 @@
 """
 FinMaster UI 系统与数据源设置中心 (Settings & Data Hub Console)
-提供大模型推理、联网搜索引擎、官方证券与宏观底座 (yfinance/SEC/FRED)、高阶金融插件 (Finnhub/FMP/Adanos/Tiingo) 配置与全链路连通性体检。
+提供大模型推理、联网搜索引擎、金融数据源 (Yahoo Finance/SEC/FRED)、高阶金融插件 (Finnhub/FMP/Adanos/Tiingo) 配置与连通性检查。
 """
 import os
 import time
@@ -74,13 +74,13 @@ def render_settings():
                     <span style="font-size: 0.72rem; background: #e0f2fe; color: #0284c7; padding: 3px 8px; border-radius: 9999px; font-weight: 600;">Data Hub Console</span>
                 </div>
                 <div style="font-size: 0.85rem; color: #475569; line-height: 1.5;">
-                    集中管理大模型推理引擎、互联网搜索调度、三大官方硬核底座 (yfinance/SEC/FRED) 与四大华尔街机构数据插件。所有更改持久化至本地 <code>.env</code> 文件。
+                    集中管理大模型推理引擎、互联网搜索调度、Yahoo Finance 聚合行情、SEC/FRED 官方数据源与金融数据插件。所有更改持久化至本地 <code>.env</code> 文件。
                 </div>
             </div>
             <div style="display: flex; gap: 10px; align-items: center;">
                 <div style="text-align: right; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 6px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
                     <div style="font-size: 0.68rem; color: #64748b; font-weight: 600;">核心底座状态</div>
-                    <div style="font-size: 0.82rem; font-weight: 700; color: #166534;">🟢 yfinance + SEC + FRED 直连</div>
+                    <div style="font-size: 0.82rem; font-weight: 700; color: #166534;">🟢 Yahoo Finance + SEC + FRED</div>
                 </div>
                 <div style="text-align: right; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 6px 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
                     <div style="font-size: 0.68rem; color: #64748b; font-weight: 600;">高阶扩展插件</div>
@@ -95,7 +95,7 @@ def render_settings():
     tab_llm, tab_search, tab_core, tab_plugins, tab_health = st.tabs([
         "🤖 大模型推理配置",
         "🌐 联网与搜索引擎",
-        "🏛️ 官方硬核数据底座",
+        "🏛️ 金融数据底座",
         "🔌 高阶金融插件",
         "🩺 全链路连通性体检"
     ])
@@ -195,7 +195,7 @@ def render_settings():
         st.markdown('<div style="font-size: 0.82rem; color: #64748b; margin-bottom: 16px;">智能多级调度引擎，规避 Gemini 免费层每日 20 次搜索限制，确保投研不中断。</div>', unsafe_allow_html=True)
 
         provider_map = {
-            "none": "🚫 默认关闭全网搜索 (依托 7 大确定性金融底座，秒级极速严谨)",
+            "none": "🚫 全局关闭联网搜索 (金融数据底座仍可用)",
             "auto": "🤖 智能自适应调度 (优先硬核底座，仅在未上市或突发新闻时启动)",
             "tavily": "⚡ Tavily AI 搜索 (强制开启 · 1,000次/月 独立免限配额)",
             "google": "🌐 Gemini 原生 Google Search (每日限20次配额)",
@@ -212,7 +212,7 @@ def render_settings():
                 options=prov_keys,
                 format_func=lambda k: provider_map[k],
                 index=p_idx,
-                help="当 Google Search 每日 20 次用完时，选择 Tavily 或 Auto 调度可彻底摆脱限流！"
+                help="none 会在系统级禁用所有联网搜索；选择其他提供器后，单次分析的关闭/智能/强制搜索模式才会生效。"
             )
             st.session_state["cfg_provider"] = selected_prov
 
@@ -258,10 +258,10 @@ def render_settings():
                                 st.caption(t_res.get("details", ""))
 
     # ----------------------------------------------------
-    # TAB 3: 官方硬核数据底座 (yfinance + SEC EDGAR + FRED)
+    # TAB 3: 金融数据底座 (Yahoo Finance + SEC EDGAR + FRED)
     # ----------------------------------------------------
     with tab_core:
-        st.markdown('<div style="font-size: 1.05rem; font-weight: 700; color: #0f172a; margin-bottom: 8px;">🏛️ 官方硬核数据底座 (yfinance + SEC EDGAR + FRED 联储宏观)</div>', unsafe_allow_html=True)
+        st.markdown('<div style="font-size: 1.05rem; font-weight: 700; color: #0f172a; margin-bottom: 8px;">🏛️ 金融数据底座 (Yahoo Finance + SEC EDGAR + FRED)</div>', unsafe_allow_html=True)
         st.markdown('<div style="font-size: 0.82rem; color: #64748b; margin-bottom: 16px;">FinMaster 的坚实财务与宏观基石：直接连通全球各大交易所行情、美国证监会披露底稿与美联储主权级利率基准。</div>', unsafe_allow_html=True)
 
         col_c1, col_c2, col_c3 = st.columns(3)
@@ -269,7 +269,7 @@ def render_settings():
             st.markdown("""
             <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px 18px; height: 100%; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-                    <div style="font-size: 0.95rem; font-weight: 700; color: #0f172a;">📊 yfinance 实时金融底座</div>
+                    <div style="font-size: 0.95rem; font-weight: 700; color: #0f172a;">📊 Yahoo Finance 行情与财务数据</div>
                     <span style="font-size: 0.68rem; background: #ecfdf5; color: #059669; padding: 2px 7px; border-radius: 9999px; font-weight: 600;">🟢 免Key直连</span>
                 </div>
                 <div style="font-size: 0.76rem; color: #475569; line-height: 1.55;">
@@ -573,7 +573,7 @@ def render_settings():
                 })
 
             # 3. yfinance
-            progress_bar.progress(38, text="[3/8] 测试 yfinance 官方行情与财报底座...")
+            progress_bar.progress(38, text="[3/8] 测试 Yahoo Finance 第三方行情与财报接口...")
             t_s = time.time()
             try:
                 yf_snap = yfinance_source.fetch_data("AAPL")

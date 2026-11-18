@@ -1,12 +1,13 @@
 """
 FinMaster YFinance Data Provider
-负责提取高精度实时行情报价、股本结构、估值指标与过去4季度三大财务报表（营收、净利润、FCF、净现金）。
+负责提取 Yahoo Finance 第三方行情快照、股本结构、估值指标与过去4季度财务数据。
 100% 免费，免 API Key。
 """
 import logging
+import math
 import re
 from typing import Dict, Any, Optional, List, Tuple
-from datetime import datetime
+from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -134,7 +135,26 @@ class YFinanceSource:
             except Exception as e:
                 logger.warning(f"获取 {ticker_symbol} info 异常: {e}")
 
-            price = info.get("currentPrice") or info.get("regularMarketPrice") or info.get("previousClose")
+            price = None
+            price_source = None
+            price_basis = None
+            for field in ("currentPrice", "regularMarketPrice", "previousClose"):
+                candidate = info.get(field)
+                try:
+                    candidate = float(candidate)
+                except (TypeError, ValueError):
+                    continue
+                if math.isfinite(candidate) and candidate > 0:
+                    price = candidate
+                    price_source = f"Yahoo Finance info.{field}"
+                    price_basis = (
+                        "前一交易日收盘价（非实时）"
+                        if field == "previousClose"
+                        else "Yahoo Finance 行情快照（不保证实时）"
+                    )
+                    break
+
+            quote_as_of = self._format_market_timestamp(info.get("regularMarketTime"))
             currency = info.get("currency", "USD")
             market_cap = info.get("marketCap")
             shares_out = info.get("sharesOutstanding")
@@ -148,8 +168,12 @@ class YFinanceSource:
             # 若 info 受临时网络抖动或未全量返回，降级使用 yfinance 的 fast_info 补齐行情核心指标
             try:
                 fi = ticker.fast_info
-                if not price and hasattr(fi, "last_price") and fi.last_price:
-                    price = float(fi.last_price)
+                if price is None and hasattr(fi, "last_price") and fi.last_price:
+                    candidate = float(fi.last_price)
+                    if math.isfinite(candidate) and candidate > 0:
+                        price = candidate
+                        price_source = "Yahoo Finance fast_info.last_price"
+                        price_basis = "Yahoo Finance 行情快照（不保证实时）"
                 if not market_cap and hasattr(fi, "market_cap") and fi.market_cap:
                     market_cap = float(fi.market_cap)
                 if not shares_out and hasattr(fi, "shares") and fi.shares:
@@ -211,6 +235,10 @@ class YFinanceSource:
                 "ticker": ticker_symbol,
                 "currency": currency,
                 "price": price,
+                "price_source": price_source,
+                "price_basis": price_basis,
+                "quote_as_of": quote_as_of,
+                "data_retrieved_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                 "market_cap": market_cap,
                 "shares_out": shares_out,
                 "pe_trailing": pe_trailing,
@@ -244,7 +272,7 @@ class YFinanceSource:
         return None
 
     def to_markdown(self, target: str) -> str:
-        """格式化为投研分析师专用的 Markdown 权威数据卡片"""
+        """格式化为投研分析师专用的 Markdown 数据卡片"""
         data = self.fetch_data(target)
         if not data.get("success"):
             return ""
@@ -252,6 +280,8 @@ class YFinanceSource:
         ticker = data.get("ticker", target)
         curr = data.get("currency", "USD")
         price = data.get("price")
+        price_source = data.get("price_source") or "Yahoo Finance via yfinance"
+        price_basis = data.get("price_basis") or "数据提供方行情快照（不保证实时）"
         mcap = data.get("market_cap")
         shares = data.get("shares_out")
         pe_t = data.get("pe_trailing")
@@ -262,12 +292,15 @@ class YFinanceSource:
         w_high = data.get("w52_high")
 
         lines = [
-            f"### 📊 【yfinance 权威结构化行情与财务底稿 · 标的代码: {ticker}】",
-            f"- **数据性质**：官方证券交易所实时/最新收盘硬核数据（100% 结构化真实数据，非估算）",
-            f"- **当前实时/收盘价**：`{self._fmt_currency(price, curr)}`" if price else "- **当前实时/收盘价**：暂无行情",
+            f"### 📊 【Yahoo Finance（yfinance）行情与财务数据 · 标的代码: {ticker}】",
+            "- **数据来源**：Yahoo Finance 第三方数据聚合服务；非交易所官方直连，数据可能延迟或修订",
+            f"- **行情价格（{price_basis}）**：`{self._fmt_currency(price, curr)}`" if price is not None else "- **行情价格**：暂无行情",
+            f"- **行情字段**：`{price_source}`" if price is not None else "",
+            f"- **行情时点**：`{data['quote_as_of']}`（UTC，供应方提供）" if data.get("quote_as_of") else "- **行情时点**：供应方未提供；获取时间不代表行情发生时间",
+            f"- **本次获取时间**：`{data['data_retrieved_at']}`（UTC）" if data.get("data_retrieved_at") else "",
             f"- **52 周价格区间**：`{self._fmt_currency(w_low, curr)} ~ {self._fmt_currency(w_high, curr)}`" if (w_low and w_high) else "",
             f"- **最新已发行总股本**：`{self._fmt_large_num(shares)} 股`" if shares else "",
-            f"- **真实总市值 (Market Cap)**：`{self._fmt_currency_large(mcap, curr)}`" if mcap else "",
+            f"- **供应方总市值 (Market Cap)**：`{self._fmt_currency_large(mcap, curr)}`" if mcap else "",
         ]
 
         val_parts = []
@@ -288,7 +321,7 @@ class YFinanceSource:
         qf = data.get("quarterly_financials", [])
         if qf:
             lines.append("")
-            lines.append("#### 📑 近 4 季度审计级财务三张表穿透 (单位: 同上述标的货币):")
+            lines.append("#### 📑 Yahoo Finance 整理的近 4 季度财务数据（未经独立审计，单位: 同上述标的货币）:")
             lines.append("| 季度截止日 | 营业收入 (Revenue) | 核心净利润 (Net Income) | 经营现金流 (OCF) | 资本开支 (CapEx) | 真实自由现金流 (FCF) | 现金与等价物 |")
             lines.append("| :--- | :--- | :--- | :--- | :--- | :--- | :--- |")
             for q in qf:
@@ -303,6 +336,18 @@ class YFinanceSource:
 
         lines.append("")
         return "\n".join(lines)
+
+    @staticmethod
+    def _format_market_timestamp(value: Any) -> Optional[str]:
+        if isinstance(value, datetime):
+            timestamp = value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+            return timestamp.astimezone(timezone.utc).isoformat(timespec="seconds")
+        if isinstance(value, (int, float)) and math.isfinite(value) and value > 0:
+            try:
+                return datetime.fromtimestamp(value, timezone.utc).isoformat(timespec="seconds")
+            except (OverflowError, OSError, ValueError):
+                return None
+        return None
 
     def _fmt_currency(self, val: Optional[float], curr: str) -> str:
         if val is None:

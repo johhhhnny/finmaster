@@ -35,7 +35,7 @@ header[data-testid="stHeader"],
     display: none !important;
 }
 
-/* 侧边栏折叠后页面左上角的展开浮动按钮 (>>) */
+/* 侧边栏折叠后页面左上角的紧凑展开按钮 (>>) */
 [data-testid="stExpandSidebarButton"],
 [data-testid="stSidebarCollapsedControl"],
 button[data-testid="stExpandSidebarButton"] {
@@ -48,13 +48,22 @@ button[data-testid="stExpandSidebarButton"] {
     pointer-events: auto !important; /* 关键：开启按钮点击响应 */
     background: #ffffff !important;
     border: 1px solid #cbd5e1 !important;
-    border-radius: 8px !important;
+    border-radius: 7px !important;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12) !important;
     cursor: pointer !important;
-    padding: 0.35rem 0.55rem !important;
+    width: 30px !important;
+    min-width: 30px !important;
+    height: 30px !important;
+    min-height: 30px !important;
+    padding: 0 !important;
     color: #1e293b !important;
     transition: all 0.2s ease !important;
     opacity: 0.95 !important;
+}
+[data-testid="stExpandSidebarButton"] svg,
+[data-testid="stSidebarCollapsedControl"] svg {
+    width: 18px !important;
+    height: 18px !important;
 }
 [data-testid="stExpandSidebarButton"]:hover,
 [data-testid="stSidebarCollapsedControl"]:hover,
@@ -94,30 +103,51 @@ section[data-testid="stMain"] {
     margin-top: 0 !important;
 }
 
-/* 2. 侧边栏整体与折叠收起按钮 (紧凑微顶栏，允许一键隐藏与收起) */
+/* 2. 侧边栏折叠按钮浮于顶部，不再占用品牌区的垂直空间 */
 [data-testid="stSidebarHeader"] {
-    display: flex !important;
+    display: block !important;
     visibility: visible !important;
-    justify-content: flex-end !important;
-    align-items: center !important;
-    height: 2rem !important;
-    min-height: 2rem !important;
-    padding: 0.2rem 0.6rem 0 0.6rem !important;
+    position: relative !important;
+    z-index: 20 !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
     background: transparent !important;
 }
 [data-testid="stSidebarCollapseButton"] {
-    display: inline-flex !important;
+    display: flex !important;
     visibility: visible !important;
+    position: absolute !important;
+    top: 2px !important;
+    right: 6px !important;
+    z-index: 21 !important;
+    width: 28px !important;
+    height: 28px !important;
+    align-items: center !important;
+    justify-content: center !important;
 }
 [data-testid="stSidebarCollapseButton"] button {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
     background: transparent !important;
     border: none !important;
     box-shadow: none !important;
     border-radius: 6px !important;
-    padding: 4px !important;
+    width: 28px !important;
+    min-width: 28px !important;
+    height: 28px !important;
+    min-height: 28px !important;
+    padding: 0 !important;
     cursor: pointer !important;
     color: #64748b !important;
     transition: all 0.15s ease !important;
+}
+[data-testid="stSidebarCollapseButton"] button svg {
+    width: 18px !important;
+    height: 18px !important;
 }
 [data-testid="stSidebarCollapseButton"] button:hover {
     background: #e2e8f0 !important;
@@ -913,6 +943,119 @@ div[data-testid="stColumn"] div.stButton > button:not([kind="primary"]):hover {
     border-radius: 8px;
     padding: 14px 18px;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+.archive-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 20px 24px;
+    margin-bottom: 14px;
+    background: linear-gradient(115deg, #ffffff 0%, #f5f9ff 100%);
+    border: 1px solid #dbe5f1;
+    border-left: 4px solid #2563eb;
+    border-radius: 12px;
+}
+.archive-eyebrow {
+    margin-bottom: 4px;
+    color: #64748b;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+}
+.archive-header h1 {
+    margin: 0 0 4px;
+    color: #0f172a;
+    font-size: 1.5rem;
+    line-height: 1.3;
+    font-weight: 750;
+}
+.archive-header p {
+    margin: 0;
+    color: #64748b;
+    font-size: 0.84rem;
+}
+.archive-stats {
+    display: flex;
+    gap: 10px;
+}
+.archive-stats > div {
+    display: flex;
+    min-width: 96px;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+}
+.archive-stats span {
+    color: #64748b;
+    font-size: 0.72rem;
+}
+.archive-stats strong {
+    color: #1e3a8a;
+    font-size: 1.15rem;
+    line-height: 1.2;
+}
+.archive-clear-spacer {
+    height: 28px;
+}
+.st-key-archive_report_list [data-testid="stRadio"] div[role="radiogroup"] {
+    gap: 6px !important;
+}
+.st-key-archive_report_list label[data-testid="stRadioOption"] {
+    padding: 8px 10px !important;
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 8px !important;
+    transition: background-color 0.15s ease, border-color 0.15s ease !important;
+}
+.st-key-archive_report_list label[data-testid="stRadioOption"]:hover {
+    background: #f8fafc !important;
+    border-color: #94a3b8 !important;
+}
+.st-key-archive_report_list label[data-testid="stRadioOption"]:has(input:checked),
+.st-key-archive_report_list label[data-testid="stRadioOption"][data-selected] {
+    background: #eff6ff !important;
+    border-color: #60a5fa !important;
+    box-shadow: inset 3px 0 #2563eb !important;
+}
+.st-key-archive_report_list label[data-testid="stRadioOption"] p {
+    color: #334155 !important;
+    font-size: 0.79rem !important;
+    line-height: 1.35 !important;
+}
+.st-key-archive_report_list label[data-testid="stRadioOption"]:has(input:checked) p,
+.st-key-archive_report_list label[data-testid="stRadioOption"][data-selected] p {
+    color: #1d4ed8 !important;
+    font-weight: 650 !important;
+}
+.st-key-archive_reader [data-testid="stMarkdownContainer"] {
+    color: #334155;
+    font-size: 0.94rem;
+    line-height: 1.72;
+}
+.st-key-archive_reader h1 {
+    margin-top: 1.2rem;
+    color: #0f172a;
+    font-size: 1.65rem;
+    line-height: 1.35;
+}
+.st-key-archive_reader h2 {
+    margin-top: 1.8rem;
+    padding-bottom: 0.35rem;
+    color: #1e293b;
+    font-size: 1.28rem;
+    border-bottom: 1px solid #e2e8f0;
+}
+.st-key-archive_reader h3 {
+    margin-top: 1.25rem;
+    color: #334155;
+    font-size: 1.05rem;
+}
+.st-key-archive_reader table {
+    font-size: 0.83rem;
 }
 </style>
 """, unsafe_allow_html=True)

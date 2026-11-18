@@ -1,7 +1,7 @@
 """
 FinMaster Data Hub (多源金融数据调度中枢)
 统一调度：
-1. yfinance: 实时行情报价 + 过去 4 季度完整三张表 (营收/净利/FCF/CapEx/净现金)
+1. yfinance: 第三方行情快照 + 过去 4 季度财务数据（显示供应方及可用的行情时间）
 2. SEC EDGAR: 官方合规法源底稿 (10-K/10-Q/8-K 直达链接)
 3. AI 深度搜索 (Tavily / Google Search): 定性商业模式动态、竞争格局、突发事件与未上市独角兽估值
 4. (预留第二步扩展接口: Finnhub 目标价/Surprise, FMP DCF/ROIC, Adanos 情绪/Polymarket)
@@ -48,11 +48,13 @@ class DataHub:
                 resolved_mode = "smart" if resolved_mode in ("auto", "true") else "off"
         else:
             resolved_mode = "smart" if enable_search else "off"
+        search_provider = search_manager.get_provider().strip().lower()
+        search_disabled = search_provider in ("none", "off")
 
         parts: List[str] = []
         active_sources: List[str] = []
 
-        # 1. 第一级：yfinance 结构化数据 (100% 真实行情 + 近4季度三张表)
+        # 1. 第一级：yfinance 第三方结构化行情与财务数据
         yf_md = ""
         has_yf = False
         if ticker:
@@ -155,10 +157,13 @@ class DataHub:
         gemini_search_allowed = False
         search_decision_reason = ""
 
-        if resolved_mode == "off":
+        if resolved_mode == "off" or search_disabled:
             should_run_search = False
             gemini_search_allowed = False
-            search_decision_reason = "用户配置：关闭全网搜索（依托权威金融底座秒级出具）"
+            if resolved_mode == "off":
+                search_decision_reason = "本次分析：关闭全网搜索（依托权威金融底座秒级出具）"
+            else:
+                search_decision_reason = "系统搜索提供器配置为 none：已关闭所有全网搜索"
         elif resolved_mode == "smart":
             # 智能调度核心逻辑：优先在关闭搜索以及 Gemini 搜索的情况下获取数据
             if has_core_financials and not is_news_requested:
@@ -217,7 +222,7 @@ class DataHub:
             badge_list.append(f"⚡ {search_provider_name}")
         elif resolved_mode == "smart" and has_core_financials:
             badge_list.append("⚡ 智能极速模式 (免搜索)")
-        elif resolved_mode == "off":
+        elif resolved_mode == "off" or search_disabled:
             badge_list.append("⚡ 纯金融底座秒级模式")
         if not badge_list:
             badge_list.append("🤖 纯模型深度知识模式")

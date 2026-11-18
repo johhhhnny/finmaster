@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements-lock.txt
+      - run: python -m pip install -r requirements-lock.txt
+      - run: python -m unittest discover -s tests -v
+      - run: docker build -t finmaster:ci .
+      - name: Smoke test container health
+        run: |
+          docker run -d --name finmaster-ci -p 127.0.0.1:8501:8501 finmaster:ci
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:8501/_stcore/health; then
+              docker rm -f finmaster-ci
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs finmaster-ci
+          docker rm -f finmaster-ci
+          exit 1

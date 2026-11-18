@@ -74,6 +74,16 @@ class ArchiveManager:
         for cname, flist in company_reports.items():
             flist.sort(key=lambda x: (not x["is_final"], x["name"]))
 
+        company_reports = dict(
+            sorted(
+                company_reports.items(),
+                key=lambda item: (
+                    -max(report["mtime"] for report in item[1]),
+                    item[0].casefold(),
+                ),
+            )
+        )
+
         # 专题按修改时间倒序
         topic_reports.sort(key=lambda x: x["mtime"], reverse=True)
 
@@ -84,25 +94,32 @@ class ArchiveManager:
             "total_files": len(seen_paths)
         }
 
-    def filter_reports(self, keyword: str) -> Dict[str, Any]:
-        """根据关键字搜索研报"""
-        all_data = self.scan_all_reports()
+    def filter_reports(
+        self, keyword: str, data: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """按标的、文件名或研报正文搜索，可复用已扫描的档案数据。"""
+        all_data = data if data is not None else self.scan_all_reports()
         if not keyword or not keyword.strip():
             return all_data
 
-        kw = keyword.strip().lower()
+        kw = keyword.strip().casefold()
         filtered_companies = {}
         for cname, flist in all_data["company_reports"].items():
-            if kw in cname.lower():
+            if kw in cname.casefold():
                 filtered_companies[cname] = flist
             else:
-                matched_files = [f for f in flist if kw in f["name"].lower()]
+                matched_files = [
+                    report for report in flist
+                    if kw in report["name"].casefold()
+                    or kw in self.read_report_content(report["path"]).casefold()
+                ]
                 if matched_files:
                     filtered_companies[cname] = matched_files
 
         filtered_topics = [
             t for t in all_data["topic_reports"]
-            if kw in t["name"].lower()
+            if kw in t["name"].casefold()
+            or kw in self.read_report_content(t["path"]).casefold()
         ]
 
         return {

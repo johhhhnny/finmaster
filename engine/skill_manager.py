@@ -285,6 +285,9 @@ class SkillManager:
         """
         meta = self.get_skill(skill_id) or {}
         target = user_params.get("target") or user_params.get("holdings") or "研究标的"
+        raw_markdown = self.get_skill_raw_content(skill_id)
+        if not raw_markdown:
+            raise FileNotFoundError(f"技能提示词文件不存在或为空: {skill_id}.md")
 
         # 针对 private-company-research 超大框架文件进行精炼化构建，提炼6大核心模块，大幅优化响应速度与防止长连接超时
         if skill_id == "private-company-research":
